@@ -78,14 +78,14 @@ export class SceneManager {
 
     this.camera.aspect = aspect;
 
-    // Desired visible width matches 7 columns (7 * 1.06 = ~7.42) + safe side margins
-    const targetWidth = aspect < 1.0 ? 7.1 : 8.8;
+    // Desired visible width matches 7 columns (7 * 1.06 = ~7.42) + generous side margins
+    const targetWidth = aspect < 1.0 ? 8.6 : 9.6;
     const fovInRad = (this.camera.fov * Math.PI) / 180;
 
     let targetZ = (targetWidth / (2 * Math.tan(fovInRad / 2))) / aspect;
-    targetZ = Math.max(7.8, targetZ);
+    targetZ = Math.max(9.2, targetZ);
 
-    const targetY = aspect < 1.0 ? 0.95 : 0.7;
+    const targetY = aspect < 1.0 ? 0.9 : 0.7;
     this.camera.position.set(0, targetY, targetZ);
     this.camera.lookAt(0, targetY - 0.25, 0);
 
