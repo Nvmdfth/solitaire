@@ -12,24 +12,24 @@ export class SceneManager {
   constructor(container: HTMLElement) {
     this.container = container;
     this.scene = new THREE.Scene();
-    this.scene.background = new THREE.Color(0x0a2916); // Deep background
+    this.scene.background = new THREE.Color(0x051a0c); // Dark high-contrast background
 
     // Perspective Camera setup
     this.camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 100);
     this.updateCameraForViewport();
 
     // WebGL Renderer
-    this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false, powerPreference: 'high-performance' });
+    this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false, preserveDrawingBuffer: true, powerPreference: 'high-performance' });
     this.renderer.setSize(container.clientWidth, container.clientHeight);
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    this.renderer.toneMappingExposure = 1.05;
+    this.renderer.toneMappingExposure = 1.15;
 
     container.appendChild(this.renderer.domElement);
 
-    // Add Lights
+    // Setup Lighting
     this.setupLighting();
 
     // Add Tabletop
@@ -46,34 +46,31 @@ export class SceneManager {
   }
 
   private setupLighting(): void {
-    // Balanced ambient light
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.75);
+    // Ambient light
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
     this.scene.add(ambientLight);
 
-    // Directional main light casting soft card shadows
-    const dirLight = new THREE.DirectionalLight(0xfffaed, 0.9);
-    dirLight.position.set(-3, 6, 8);
+    // Primary directional light casting deep crisp card shadows for stack definition
+    const dirLight = new THREE.DirectionalLight(0xffffff, 1.2);
+    dirLight.position.set(-2, 5, 7);
     dirLight.castShadow = true;
-    dirLight.shadow.mapSize.width = 2048;
-    dirLight.shadow.mapSize.height = 2048;
+    dirLight.shadow.mapSize.width = 4096;
+    dirLight.shadow.mapSize.height = 4096;
     dirLight.shadow.camera.near = 0.5;
     dirLight.shadow.camera.far = 25;
-    dirLight.shadow.camera.left = -6;
-    dirLight.shadow.camera.right = 6;
-    dirLight.shadow.camera.top = 6;
-    dirLight.shadow.camera.bottom = -6;
-    dirLight.shadow.bias = -0.0005;
+    dirLight.shadow.camera.left = -5.5;
+    dirLight.shadow.camera.right = 5.5;
+    dirLight.shadow.camera.top = 5.5;
+    dirLight.shadow.camera.bottom = -5.5;
+    dirLight.shadow.bias = -0.0003;
     this.scene.add(dirLight);
 
-    // Secondary fill light from opposite corner
-    const fillLight = new THREE.DirectionalLight(0xddeeff, 0.35);
-    fillLight.position.set(4, -4, 6);
+    // Secondary fill light
+    const fillLight = new THREE.DirectionalLight(0xdbeafe, 0.35);
+    fillLight.position.set(4, -3, 5);
     this.scene.add(fillLight);
   }
 
-  /**
-   * Adapts camera Z distance and Y tilt according to screen aspect ratio
-   */
   public updateCameraForViewport(): void {
     const width = this.container.clientWidth || window.innerWidth;
     const height = this.container.clientHeight || window.innerHeight;
@@ -81,18 +78,16 @@ export class SceneManager {
 
     this.camera.aspect = aspect;
 
-    // Desired board visible width in 3D units is ~9.5 units (7 columns + margins)
-    // In portrait mode (aspect < 1), we pull the camera further back so the full width fits
-    const targetWidth = 9.8;
+    // Desired visible width matches 7 columns (7 * 1.06 = ~7.42) + safe side margins
+    const targetWidth = aspect < 1.0 ? 7.1 : 8.8;
     const fovInRad = (this.camera.fov * Math.PI) / 180;
 
     let targetZ = (targetWidth / (2 * Math.tan(fovInRad / 2))) / aspect;
-    targetZ = Math.max(10.5, targetZ); // Minimum distance
+    targetZ = Math.max(7.8, targetZ);
 
-    // Position camera looking straight/subtly tilted at center of tableau
-    const targetY = aspect < 1.0 ? 0.3 : 0.6;
+    const targetY = aspect < 1.0 ? 0.95 : 0.7;
     this.camera.position.set(0, targetY, targetZ);
-    this.camera.lookAt(0, targetY - 0.2, 0);
+    this.camera.lookAt(0, targetY - 0.25, 0);
 
     this.camera.updateProjectionMatrix();
   }

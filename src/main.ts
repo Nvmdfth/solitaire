@@ -98,6 +98,10 @@ class SolitaireApp {
     requestAnimationFrame(loop);
   }
 
+  public renderNow(): void {
+    this.sceneManager.render();
+  }
+
   private startNewGame(customDeck?: Card[]): void {
     this.winCelebration.hide();
     this.animationManager.stopWinCascade();
@@ -149,52 +153,41 @@ class SolitaireApp {
   }
 
   private async animateDealSequence(): Promise<void> {
-    const stockBase = this.sceneManager.tabletop.getSlotPosition({ type: 'stock', index: 0 });
-
-    // Place all cards initially at stock position face down
-    this.cardMap.forEach((c3d) => {
-      if (c3d.mesh) {
-        c3d.mesh.position.set(stockBase.x, stockBase.y, stockBase.z);
-        c3d.mesh.rotation.set(0, Math.PI, 0); // Face down
-        c3d.setFaceUp(false);
+    // Place all stock cards in stock pile
+    this.game.stock.forEach((card, idx) => {
+      const c3d = this.cardMap.get(card.id);
+      if (c3d && c3d.mesh) {
+        const pos = this.sceneManager.tabletop.getCardPositionInPile({ type: 'stock', index: 0 }, idx, 0);
+        c3d.mesh.position.set(pos.x, pos.y, pos.z);
+        c3d.setTargetPosition(pos.x, pos.y, pos.z);
+        c3d.mesh.rotation.set(0, Math.PI, 0);
+        c3d.isFaceUp = false;
       }
     });
 
-    // Deal cards to Tableau columns one by one
-    for (let row = 0; row < 7; row++) {
-      for (let col = row; col < 7; col++) {
-        const card = this.game.tableau[col][row];
-        if (!card) continue;
-
+    // Place and reveal all tableau cards across all 7 columns
+    for (let col = 0; col < 7; col++) {
+      const colCards = this.game.tableau[col];
+      for (let row = 0; row < colCards.length; row++) {
+        const card = colCards[row];
         const c3d = this.cardMap.get(card.id);
-        if (!c3d) continue;
+        if (!c3d || !c3d.mesh) continue;
 
-        const isTopCard = row === col;
+        const isTop = row === colCards.length - 1;
         const targetPos = this.sceneManager.tabletop.getCardPositionInPile(
           { type: 'tableau', index: col },
           row,
-          isTopCard ? 1 : 0
+          isTop ? 1 : 0
         );
 
-        this.soundEffects.playDeal();
-        await this.animationManager.animateMove(c3d, targetPos, 0.12, 0.35);
-
-        if (isTopCard) {
-          this.soundEffects.playFlip();
-          await this.animationManager.animateFlip(c3d, true, 0.14);
-        }
+        c3d.mesh.position.set(targetPos.x, targetPos.y, targetPos.z);
+        c3d.setTargetPosition(targetPos.x, targetPos.y, targetPos.z);
+        c3d.mesh.rotation.set(0, card.isFaceUp ? 0 : Math.PI, 0);
+        c3d.isFaceUp = card.isFaceUp;
       }
     }
-
-    // Position remaining cards in stock pile
-    this.game.stock.forEach((card, idx) => {
-      const c3d = this.cardMap.get(card.id);
-      if (c3d) {
-        const pos = this.sceneManager.tabletop.getCardPositionInPile({ type: 'stock', index: 0 }, idx, 0);
-        c3d.mesh?.position.set(pos.x, pos.y, pos.z);
-        c3d.setTargetPosition(pos.x, pos.y, pos.z);
-      }
-    });
+    
+    this.soundEffects.playDeal();
   }
 
   private handleCardMoved(source: PileLocation, target: PileLocation, cards: Card[]): void {
@@ -283,6 +276,8 @@ class SolitaireApp {
         const pos = this.sceneManager.tabletop.getCardPositionInPile(location, idx, faceUpBefore);
         c3d.setTargetPosition(pos.x, pos.y, pos.z);
         c3d.mesh?.position.set(pos.x, pos.y, pos.z);
+        c3d.mesh?.rotation.set(0, card.isFaceUp ? 0 : Math.PI, 0);
+        c3d.isFaceUp = card.isFaceUp;
       }
     });
   }
@@ -354,5 +349,6 @@ class SolitaireApp {
 
 // Bootstrap application on DOMContentLoaded
 window.addEventListener('DOMContentLoaded', () => {
-  new SolitaireApp();
+  const app = new SolitaireApp();
+  (window as any).__solitaire = app;
 });
