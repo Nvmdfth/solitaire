@@ -16,7 +16,7 @@ export class Tabletop {
   public static COL_SPACING = 1.25;
   public static TOP_ROW_Y = 2.4;
   public static TABLEAU_ROW_Y = 0.8;
-  public static TABLEAU_CARD_OFFSET_Y = 0.28; // Vertical spacing between face-up tableau cards
+  public static TABLEAU_CARD_OFFSET_Y = 0.32; // Vertical spacing between face-up tableau cards
   public static TABLEAU_HIDDEN_OFFSET_Y = 0.12; // Vertical spacing between face-down cards
   public static CARD_STACK_Z_OFFSET = 0.005;
 
@@ -74,8 +74,8 @@ export class Tabletop {
     ctx.strokeRect(10, 10, canvas.width - 20, canvas.height - 20);
 
     if (icon) {
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
-      ctx.font = '72px sans-serif';
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.25)';
+      ctx.font = 'bold 96px sans-serif';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.fillText(icon, canvas.width / 2, canvas.height / 2);

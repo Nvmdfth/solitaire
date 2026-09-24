@@ -168,7 +168,7 @@ export class CardMeshFactory {
     const rankSymbol = getRankSymbol(card.rank);
     const suitSymbol = getSuitSymbol(card.suit);
 
-    // Draw Corner Indices (Top-Left & Bottom-Right)
+    // Draw Corner Indices (Top-Left & Bottom-Right) - Enlarged for Mobile
     const drawCorner = (x: number, y: number, isBottom: boolean) => {
       ctx.save();
       ctx.translate(x, y);
@@ -179,27 +179,27 @@ export class CardMeshFactory {
       ctx.textAlign = 'center';
       ctx.textBaseline = 'top';
 
-      // Rank symbol
-      ctx.font = 'bold 52px "Trebuchet MS", Arial, sans-serif';
+      // Large bold rank symbol
+      ctx.font = 'bold 84px "Trebuchet MS", "Arial Black", Arial, sans-serif';
       ctx.fillText(rankSymbol, 0, 0);
 
-      // Suit symbol
-      ctx.font = '40px sans-serif';
-      ctx.fillText(suitSymbol, 0, 54);
+      // Large crisp suit symbol
+      ctx.font = '68px sans-serif';
+      ctx.fillText(suitSymbol, 0, 76);
       ctx.restore();
     };
 
-    drawCorner(54, 40, false);
-    drawCorner(canvas.width - 54, canvas.height - 40, true);
+    drawCorner(60, 24, false);
+    drawCorner(canvas.width - 60, canvas.height - 24, true);
 
     // Center Illustration or Pips
     if (card.rank >= 11) {
       // Court Cards (Jack, Queen, King)
       this.drawCourtCard(ctx, card.rank, card.suit, color);
     } else if (card.rank === 1) {
-      // Ace: Giant ornate center suit symbol
+      // Ace: Giant bold center suit symbol
       ctx.fillStyle = color;
-      ctx.font = '160px sans-serif';
+      ctx.font = '240px sans-serif';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.fillText(suitSymbol, canvas.width / 2, canvas.height / 2);
@@ -217,14 +217,14 @@ export class CardMeshFactory {
 
   private static drawPips(ctx: CanvasRenderingContext2D, rank: Rank, suitSymbol: string, color: string) {
     ctx.fillStyle = color;
-    ctx.font = '64px sans-serif';
+    ctx.font = '92px sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
 
     const cx = 256;
     const cy = 358;
-    const colL = 170;
-    const colR = 342;
+    const colL = 175;
+    const colR = 337;
     const rowT = 180;
     const rowM = 270;
     const rowC = 358;
@@ -334,16 +334,16 @@ export class CardMeshFactory {
     const crown = rank === 11 ? '⚔' : rank === 12 ? '♛' : '♚';
 
     ctx.fillStyle = color;
-    ctx.font = 'bold 36px serif';
+    ctx.font = 'bold 44px serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText(title, cx, cy - 80);
+    ctx.fillText(title, cx, cy - 90);
 
-    ctx.font = '80px sans-serif';
+    ctx.font = '115px sans-serif';
     ctx.fillText(crown, cx, cy);
 
-    ctx.font = '60px sans-serif';
-    ctx.fillText(getSuitSymbol(suit), cx, cy + 80);
+    ctx.font = '85px sans-serif';
+    ctx.fillText(getSuitSymbol(suit), cx, cy + 90);
   }
 
   /**
