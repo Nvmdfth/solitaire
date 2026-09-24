@@ -1,0 +1,8 @@
+version: '3.8'
+services:
+  solitaire:
+    build: .
+    container_name: solitaire-3d
+    ports:
+      - "9876:9876"
+    restart: unless-stopped
