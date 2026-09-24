@@ -1,4 +1,4 @@
-import { Card, PileLocation, PileType, Rank, Suit } from './types';
+import { Card, PileLocation } from './types';
 import { createDeck, shuffleDeck, getCardColor } from './Deck';
 
 export interface GameEventCallbacks {

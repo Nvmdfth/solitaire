@@ -8,7 +8,6 @@ export interface Command {
 }
 
 export class MoveCardsCommand implements Command {
-  private movedCards: Card[] = [];
   private uncoveredCardWasFaceDown: boolean = false;
   private scoreDelta: number = 0;
 
