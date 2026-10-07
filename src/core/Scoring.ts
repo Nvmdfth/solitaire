@@ -19,6 +19,15 @@ export class ScoreManager {
     this.pauseStartTime = 0;
   }
 
+  public restoreStats(score: number, moves: number, elapsedSeconds: number): void {
+    this.score = Math.max(0, score);
+    this.moves = Math.max(0, moves);
+    this.startTime = Date.now() - (Math.max(0, elapsedSeconds) * 1000);
+    this.isPaused = false;
+    this.pausedDuration = 0;
+    this.pauseStartTime = 0;
+  }
+
   public addScore(delta: number): void {
     this.score = Math.max(0, this.score + delta);
   }

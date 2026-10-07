@@ -143,28 +143,86 @@ export function findBestMove(game: GameState): HintMove | null {
     }
   }
 
-  // 6. Draw from stock or recycle waste
-  if (game.stock.length > 0) {
-    return {
-      action: 'draw_stock',
-      source: { type: 'stock', index: 0 },
-      target: { type: 'waste', index: 0 },
-      card: game.stock[game.stock.length - 1],
-      count: 1,
-      description: 'Draw card from stock.'
-    };
-  }
+  // 6. Draw from stock or recycle waste if there is a reachable move
+  if (hasPlayableStockOrWasteMove(game)) {
+    if (game.stock.length > 0) {
+      return {
+        action: 'draw_stock',
+        source: { type: 'stock', index: 0 },
+        target: { type: 'waste', index: 0 },
+        card: game.stock[game.stock.length - 1],
+        count: 1,
+        description: 'Draw card from stock.'
+      };
+    }
 
-  if (game.waste.length > 0) {
-    return {
-      action: 'recycle_waste',
-      source: { type: 'waste', index: 0 },
-      target: { type: 'stock', index: 0 },
-      card: game.waste[0],
-      count: game.waste.length,
-      description: 'Recycle waste back into stock.'
-    };
+    if (game.waste.length > 0) {
+      return {
+        action: 'recycle_waste',
+        source: { type: 'waste', index: 0 },
+        target: { type: 'stock', index: 0 },
+        card: game.waste[0],
+        count: game.waste.length,
+        description: 'Recycle waste back into stock.'
+      };
+    }
   }
 
   return null;
+}
+
+/**
+ * Simulates cycling through the stock and waste pile to determine if any card
+ * reachable by drawing from stock or recycling waste can be played to a tableau or foundation pile.
+ */
+export function hasPlayableStockOrWasteMove(game: GameState): boolean {
+  if (game.stock.length === 0 && game.waste.length === 0) {
+    return false;
+  }
+
+  const simStock = game.stock.map(c => ({ ...c }));
+  const simWaste = game.waste.map(c => ({ ...c }));
+  const seenStates = new Set<string>();
+
+  while (true) {
+    const stateKey = simStock.map(c => c.id).join(',') + '|' + simWaste.map(c => c.id).join(',');
+    if (seenStates.has(stateKey)) {
+      break;
+    }
+    seenStates.add(stateKey);
+
+    if (simStock.length > 0) {
+      const count = Math.min(game.drawMode, simStock.length);
+      for (let i = 0; i < count; i++) {
+        const card = simStock.pop()!;
+        card.isFaceUp = true;
+        simWaste.push(card);
+      }
+
+      const topCard = simWaste[simWaste.length - 1];
+      // Check foundation moves
+      for (let f = 0; f < 4; f++) {
+        if (game.canPlaceOnFoundation(topCard, f)) {
+          return true;
+        }
+      }
+      // Check tableau moves
+      for (let col = 0; col < 7; col++) {
+        if (game.canPlaceOnTableau([topCard], col)) {
+          return true;
+        }
+      }
+    } else if (simWaste.length > 0) {
+      // Recycle waste back into stock face-down
+      while (simWaste.length > 0) {
+        const card = simWaste.pop()!;
+        card.isFaceUp = false;
+        simStock.push(card);
+      }
+    } else {
+      break;
+    }
+  }
+
+  return false;
 }

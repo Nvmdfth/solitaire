@@ -93,6 +93,7 @@ class SolitaireApp {
     const savedSession = loadSessionFromCookie();
 
     if (savedSession && !this.isSessionWon(savedSession)) {
+      const savedSeedStr = savedSession.game.seed != null ? String(savedSession.game.seed) : null;
       const normalizedParamSeed = seedParam != null && seedParam.trim() !== ''
         ? (/^\d+$/.test(seedParam.trim())
             ? String(Number(seedParam.trim()) >>> 0)

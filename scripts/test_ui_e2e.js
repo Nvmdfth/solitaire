@@ -1,4 +1,6 @@
 import puppeteer from 'puppeteer-core';
+import http from 'http';
+import { spawn } from 'child_process';
 
 const results = [];
 
@@ -8,13 +10,48 @@ function recordTest(suite, name, passed, error, details) {
   console.log(`  ${status}: [${suite}] ${name}${error ? ` -> ${error}` : ''}`);
 }
 
+async function ensureServerRunning(port = 9876) {
+  const isUp = () => new Promise(resolve => {
+    const req = http.get(`http://127.0.0.1:${port}`, () => resolve(true));
+    req.on('error', () => resolve(false));
+    req.setTimeout(500, () => {
+      req.destroy();
+      resolve(false);
+    });
+  });
+
+  if (await isUp()) {
+    return null;
+  }
+
+  console.log(`[Setup] Preview server not detected. Starting preview server on port ${port}...`);
+  const serverProc = spawn('npx', ['vite', 'preview', '--port', String(port)], {
+    stdio: 'ignore'
+  });
+
+  for (let i = 0; i < 30; i++) {
+    await new Promise(r => setTimeout(r, 200));
+    if (await isUp()) {
+      console.log(`[Setup] Preview server ready on port ${port}.\n`);
+      return serverProc;
+    }
+  }
+  return serverProc;
+}
+
 async function runE2ETests() {
   console.log('====================================================');
   console.log('       STARTING E2E UI & RESPONSIVE TEST SUITE       ');
   console.log('====================================================\n');
 
-  const browser = await puppeteer.launch({
-    executablePath: '/usr/bin/chromium',
+  let serverProcess = null;
+  let browser = null;
+
+  try {
+    serverProcess = await ensureServerRunning(9876);
+
+    browser = await puppeteer.launch({
+      executablePath: '/usr/bin/chromium',
     args: [
       '--no-sandbox',
       '--disable-setuid-sandbox',
@@ -33,8 +70,7 @@ async function runE2ETests() {
   const consoleMessages = [];
   const pageErrors = [];
 
-  try {
-    const page = await browser.newPage();
+  const page = await browser.newPage();
 
     page.on('console', msg => {
       consoleMessages.push({ type: msg.type(), text: msg.text() });
@@ -221,6 +257,13 @@ async function runE2ETests() {
         if (btn.style.display === 'none' || window.getComputedStyle(btn).display === 'none') {
           return;
         }
+        const modalOverlay = btn.closest('.hud-modal-overlay');
+        if (modalOverlay && window.getComputedStyle(modalOverlay).display === 'none') {
+          return;
+        }
+        if (btn.offsetParent === null && window.getComputedStyle(btn).position !== 'fixed') {
+          return;
+        }
 
         const rect = btn.getBoundingClientRect();
         // WCAG 2.2 AA SC 2.5.8 requires min 24x24 px
@@ -278,6 +321,27 @@ async function runE2ETests() {
     );
 
     console.log(`  ℹ INFO: Mobile sub-44px touch targets noted (WCAG 2.1 AAA / HIG advisory): ${JSON.stringify(a11yChecks.mobileSub44Warnings)}`);
+
+    // Explicit verification for mobile HUD action buttons meeting >= 44px
+    const hudTouchTargets = await page.evaluate(() => {
+      const drawMode = document.getElementById('hud-draw-mode');
+      const soundToggle = document.getElementById('hud-sound-toggle');
+      const dmRect = drawMode ? drawMode.getBoundingClientRect() : null;
+      const stRect = soundToggle ? soundToggle.getBoundingClientRect() : null;
+      return {
+        drawMode: dmRect ? { width: Math.round(dmRect.width), height: Math.round(dmRect.height) } : null,
+        soundToggle: stRect ? { width: Math.round(stRect.width), height: Math.round(stRect.height) } : null
+      };
+    });
+
+    recordTest(
+      'Accessibility',
+      'HUD action buttons (#hud-draw-mode, #hud-sound-toggle) meet >= 44px mobile touch target size',
+      !!(hudTouchTargets.drawMode && hudTouchTargets.drawMode.width >= 44 && hudTouchTargets.drawMode.height >= 44 &&
+         hudTouchTargets.soundToggle && hudTouchTargets.soundToggle.width >= 44 && hudTouchTargets.soundToggle.height >= 44),
+      undefined,
+      hudTouchTargets
+    );
 
     // ----------------------------------------------------
     // Suite 4: UI State Mutations & Interaction Flows
@@ -520,7 +584,12 @@ async function runE2ETests() {
     console.error('Fatal test execution error:', err);
     recordTest('Runner', 'Execution pipeline failed', false, err.message);
   } finally {
-    await browser.close();
+    if (browser) {
+      await browser.close();
+    }
+    if (serverProcess) {
+      serverProcess.kill('SIGTERM');
+    }
   }
 
   // ----------------------------------------------------
