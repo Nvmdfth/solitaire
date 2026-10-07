@@ -3,6 +3,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { KlondikeSolver } from '../src/core/solver/KlondikeSolver';
 import { SolverResult } from '../src/core/solver/SolverTypes';
+import { KNOWN_WINNABLE_SEEDS, KNOWN_UNWINNABLE_SEEDS } from '../src/core/data/seedFixtures';
 
 interface SeedEvaluation {
   seed: number;
@@ -12,13 +13,23 @@ interface SeedEvaluation {
   durationMs: number;
 }
 
-function parseArgs(): { start: number; count: number; output?: string; maxStates: number; timeoutMs: number } {
+interface CliOptions {
+  start: number;
+  count: number;
+  output?: string;
+  maxStates: number;
+  timeoutMs: number;
+  updateFixtures: boolean;
+}
+
+function parseArgs(): CliOptions {
   const args = process.argv.slice(2);
   let start = 1;
   let count = 50;
   let output: string | undefined;
   let maxStates = 5000;
   let timeoutMs = 2000;
+  let updateFixtures = false;
 
   for (let i = 0; i < args.length; i++) {
     if (args[i] === '--start' && i + 1 < args.length) {
@@ -31,14 +42,16 @@ function parseArgs(): { start: number; count: number; output?: string; maxStates
       maxStates = parseInt(args[++i], 10) || 5000;
     } else if (args[i] === '--timeout' && i + 1 < args.length) {
       timeoutMs = parseInt(args[++i], 10) || 2000;
+    } else if (args[i] === '--update-fixtures') {
+      updateFixtures = true;
     }
   }
 
-  return { start, count, output, maxStates, timeoutMs };
+  return { start, count, output, maxStates, timeoutMs, updateFixtures };
 }
 
 async function run(): Promise<void> {
-  const { start, count, output, maxStates, timeoutMs } = parseArgs();
+  const { start, count, output, maxStates, timeoutMs, updateFixtures } = parseArgs();
   const solver = new KlondikeSolver();
 
   console.log(`Scanning seeds ${start} to ${start + count - 1} (maxStates=${maxStates}, timeoutMs=${timeoutMs})...`);
@@ -104,6 +117,50 @@ async function run(): Promise<void> {
     };
     fs.writeFileSync(resolvedPath, JSON.stringify(payload, null, 2), 'utf-8');
     console.log(`Saved evaluation details to ${resolvedPath}`);
+  }
+
+  if (updateFixtures) {
+    const fixturesPath = path.resolve(process.cwd(), 'src/core/data/seedFixtures.ts');
+    const existingWinnable = new Set<number>(KNOWN_WINNABLE_SEEDS);
+    const existingUnwinnable = new Set<number>(KNOWN_UNWINNABLE_SEEDS);
+
+    let newlyAddedWinnable = 0;
+    let newlyAddedUnwinnable = 0;
+
+    for (const res of results) {
+      if (res.status === 'WINNABLE') {
+        if (!existingWinnable.has(res.seed)) {
+          existingWinnable.add(res.seed);
+          newlyAddedWinnable++;
+        }
+      } else if (res.status === 'UNWINNABLE') {
+        if (!existingUnwinnable.has(res.seed)) {
+          existingUnwinnable.add(res.seed);
+          newlyAddedUnwinnable++;
+        }
+      }
+    }
+
+    const sortedWinnable = Array.from(existingWinnable).sort((a, b) => a - b);
+    const sortedUnwinnable = Array.from(existingUnwinnable).sort((a, b) => a - b);
+
+    const fixturesContent = `/**
+ * Known seed fixtures for Klondike Solitaire testing and catalog generation.
+ */
+
+export const KNOWN_WINNABLE_SEEDS: number[] = [
+  ${sortedWinnable.join(',\n  ')}
+];
+
+export const KNOWN_UNWINNABLE_SEEDS: number[] = [
+  ${sortedUnwinnable.join(',\n  ')}
+];
+`;
+
+    fs.writeFileSync(fixturesPath, fixturesContent, 'utf-8');
+    console.log(`Updated fixtures in ${fixturesPath}:`);
+    console.log(`  - Winnable seeds: +${newlyAddedWinnable} (total: ${sortedWinnable.length})`);
+    console.log(`  - Unwinnable seeds: +${newlyAddedUnwinnable} (total: ${sortedUnwinnable.length})`);
   }
 }
 

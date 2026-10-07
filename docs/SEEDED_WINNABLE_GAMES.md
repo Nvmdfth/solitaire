@@ -230,7 +230,12 @@ npm run seeds:scan
 
 # Extensive mining run with JSON telemetry output
 npm run seeds:scan -- --start 1000 --count 500 --max-states 8000 --timeout 3000 --output docs/seed-scan-results.json
+
+# Scan and automatically update src/core/data/seedFixtures.ts
+npm run seeds:scan -- --start 100 --count 100 --update-fixtures
 ```
+
+When `--update-fixtures` is supplied, newly verified `WINNABLE` and `UNWINNABLE` seeds are automatically merged, deduplicated, sorted, and persisted to `src/core/data/seedFixtures.ts` for immediate availability in the in-game catalog. To deploy these into the Docker production container, rebuild via `docker compose up -d --build`.
 
 For argument definitions and options, see the [README CLI reference](../README.md#seed-generation--solver-cli).
 

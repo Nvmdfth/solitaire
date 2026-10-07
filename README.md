@@ -167,6 +167,7 @@ npm run seeds:scan -- --start 100 --count 200 --max-states 10000 --timeout 2000 
 | `--max-states <n>` | `5000` | Search node expansion budget per seed |
 | `--timeout <ms>` | `2000` | Wall-clock execution timeout in milliseconds per seed |
 | `--output <path>` | *None* | Path to export detailed JSON results and telemetry |
+| `--update-fixtures` | `false` | Automatically merge and persist discovered seeds into `src/core/data/seedFixtures.ts` |
 
 ---
 

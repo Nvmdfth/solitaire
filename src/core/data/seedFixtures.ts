@@ -5,11 +5,12 @@
 export const KNOWN_WINNABLE_SEEDS: number[] = [
   2,
   5,
+  51,
   112,
   142
 ];
 
 export const KNOWN_UNWINNABLE_SEEDS: number[] = [
-  2182,
-  1644
+  1644,
+  2182
 ];
