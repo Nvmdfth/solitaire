@@ -1,5 +1,6 @@
 import { Card, PileLocation } from './types';
 import { createDeck, shuffleDeck, getCardColor } from './Deck';
+import { createPRNG, hashSeed, randomSeed } from './PRNG';
 
 export interface GameEventCallbacks {
   onCardMoved?: (source: PileLocation, target: PileLocation, cards: Card[]) => void;
@@ -15,6 +16,7 @@ export class GameState {
   public foundations: Card[][] = [[], [], [], []]; // 4 piles (Hearts, Diamonds, Clubs, Spades or any order)
   public tableau: Card[][] = [[], [], [], [], [], [], []]; // 7 columns
   public drawMode: 1 | 3 = 1;
+  public currentSeed: number | null = null;
   public callbacks: GameEventCallbacks = {};
 
   constructor(callbacks?: GameEventCallbacks) {
@@ -26,14 +28,39 @@ export class GameState {
   /**
    * Initializes and deals a new game of Klondike Solitaire
    */
-  public initGame(drawMode: 1 | 3 = 1, customDeck?: Card[]): void {
+  public initGame(
+    drawMode: 1 | 3 = 1,
+    optionsOrDeck?: { seed?: number | string; customDeck?: Card[] } | Card[]
+  ): void {
     this.drawMode = drawMode;
     this.stock = [];
     this.waste = [];
     this.foundations = [[], [], [], []];
     this.tableau = [[], [], [], [], [], [], []];
 
-    const deck = customDeck ? [...customDeck] : shuffleDeck(createDeck());
+    let deck: Card[];
+
+    if (Array.isArray(optionsOrDeck)) {
+      this.currentSeed = null;
+      deck = [...optionsOrDeck];
+    } else if (optionsOrDeck && optionsOrDeck.customDeck) {
+      this.currentSeed = null;
+      deck = [...optionsOrDeck.customDeck];
+    } else {
+      let rawSeed: number | string;
+      if (optionsOrDeck && optionsOrDeck.seed !== undefined) {
+        rawSeed = optionsOrDeck.seed;
+      } else {
+        rawSeed = randomSeed();
+      }
+      const numericSeed =
+        typeof rawSeed === 'number'
+          ? (rawSeed >>> 0)
+          : (/^\d+$/.test(rawSeed) ? (Number(rawSeed) >>> 0) : hashSeed(rawSeed));
+      this.currentSeed = numericSeed;
+      const rng = createPRNG(hashSeed(numericSeed));
+      deck = shuffleDeck(createDeck(), rng);
+    }
 
     // Deal to 7 tableau columns (1 to 7 cards)
     for (let col = 0; col < 7; col++) {
@@ -54,6 +81,31 @@ export class GameState {
         this.stock.push(card);
       }
     }
+  }
+
+  public getSeed(): number | null {
+    return this.currentSeed;
+  }
+
+  /**
+   * Restores a previously saved game state
+   */
+  public restoreState(saved: {
+    stock: Card[];
+    waste: Card[];
+    foundations: Card[][];
+    tableau: Card[][];
+    drawMode: 1 | 3;
+    seed?: number | null;
+  }): void {
+    this.drawMode = saved.drawMode;
+    if (saved.seed !== undefined) {
+      this.currentSeed = saved.seed;
+    }
+    this.stock = saved.stock.map(c => ({ ...c }));
+    this.waste = saved.waste.map(c => ({ ...c }));
+    this.foundations = saved.foundations.map(f => f.map(c => ({ ...c })));
+    this.tableau = saved.tableau.map(col => col.map(c => ({ ...c })));
   }
 
   public getPile(location: PileLocation): Card[] {

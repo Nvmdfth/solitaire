@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { createDeck, shuffleDeck, getCardColor, getCardLabel } from '../src/core/Deck';
 import { Card } from '../src/core/types';
+import { createPRNG } from '../src/core/PRNG';
 
 describe('Deck and Card utilities', () => {
   it('creates standard 52-card deck with 4 suits and 13 ranks', () => {
@@ -48,5 +49,28 @@ describe('Deck and Card utilities', () => {
     expect(shuffled.length).toBe(52);
     const ids = new Set(shuffled.map(c => c.id));
     expect(ids.size).toBe(52);
+  });
+
+  it('produces identical card order given the same PRNG seed and preserves all 52 unique cards', () => {
+    const deck1 = createDeck();
+    const deck2 = createDeck();
+    const shuffled1 = shuffleDeck(deck1, createPRNG(42));
+    const shuffled2 = shuffleDeck(deck2, createPRNG(42));
+
+    expect(shuffled1.length).toBe(52);
+    expect(shuffled2.length).toBe(52);
+    expect(shuffled1.map(c => c.id)).toEqual(shuffled2.map(c => c.id));
+
+    const uniqueIds = new Set(shuffled1.map(c => c.id));
+    expect(uniqueIds.size).toBe(52);
+  });
+
+  it('diverges when shuffled with different PRNG seeds', () => {
+    const deck1 = createDeck();
+    const deck2 = createDeck();
+    const shuffled1 = shuffleDeck(deck1, createPRNG(12345));
+    const shuffled2 = shuffleDeck(deck2, createPRNG(54321));
+
+    expect(shuffled1.map(c => c.id)).not.toEqual(shuffled2.map(c => c.id));
   });
 });

@@ -156,4 +156,122 @@ describe('GameState and Klondike Rules', () => {
     }
     expect(game.canAutoComplete()).toBe(true);
   });
+
+  describe('Seeding and Reproducibility', () => {
+    it('deals identical tableau and stock cards when initialized with identical seed', () => {
+      const game1 = new GameState();
+      const game2 = new GameState();
+
+      game1.initGame(1, { seed: 12345 });
+      game2.initGame(1, { seed: 12345 });
+
+      expect(game1.getSeed()).toBe(12345);
+      expect(game2.getSeed()).toBe(12345);
+      expect(game1.currentSeed).toBe(12345);
+
+      // Verify all 7 tableau columns match
+      for (let col = 0; col < 7; col++) {
+        expect(game1.tableau[col].map(c => c.id)).toEqual(game2.tableau[col].map(c => c.id));
+        expect(game1.tableau[col].map(c => c.isFaceUp)).toEqual(game2.tableau[col].map(c => c.isFaceUp));
+      }
+
+      // Verify stock matches
+      expect(game1.stock.map(c => c.id)).toEqual(game2.stock.map(c => c.id));
+    });
+
+    it('reproduces identical deal when replaying with getSeed()', () => {
+      // Test with random seed
+      const randomGame = new GameState();
+      randomGame.initGame(1);
+      const generatedSeed = randomGame.getSeed()!;
+      expect(typeof generatedSeed).toBe('number');
+
+      const replayedGame = new GameState();
+      replayedGame.initGame(1, { seed: generatedSeed });
+
+      expect(replayedGame.getSeed()).toBe(generatedSeed);
+      expect(replayedGame.stock.map(c => c.id)).toEqual(randomGame.stock.map(c => c.id));
+      for (let col = 0; col < 7; col++) {
+        expect(replayedGame.tableau[col].map(c => c.id)).toEqual(randomGame.tableau[col].map(c => c.id));
+      }
+    });
+
+    it('produces identical deals for equivalent numeric and string seeds', () => {
+      const game1 = new GameState();
+      const game2 = new GameState();
+
+      game1.initGame(1, { seed: 98765 });
+      game2.initGame(1, { seed: '98765' });
+
+      expect(game1.getSeed()).toBe(98765);
+      expect(game2.getSeed()).toBe(98765);
+      expect(game1.stock.map(c => c.id)).toEqual(game2.stock.map(c => c.id));
+      for (let col = 0; col < 7; col++) {
+        expect(game1.tableau[col].map(c => c.id)).toEqual(game2.tableau[col].map(c => c.id));
+      }
+    });
+
+    it('diverges when initialized with different seeds', () => {
+      const game1 = new GameState();
+      const game2 = new GameState();
+
+      game1.initGame(1, { seed: 111 });
+      game2.initGame(1, { seed: 222 });
+
+      expect(game1.getSeed()).not.toBe(game2.getSeed());
+      expect(game1.stock.map(c => c.id)).not.toEqual(game2.stock.map(c => c.id));
+    });
+
+    it('generates a valid numeric seed when no seed option is provided', () => {
+      const game = new GameState();
+      game.initGame(1);
+
+      const seed = game.getSeed();
+      expect(typeof seed).toBe('number');
+      expect(seed).toBeGreaterThanOrEqual(1);
+      expect(seed).toBeLessThanOrEqual(0xffffffff);
+      expect(game.currentSeed).toBe(seed);
+    });
+
+    it('sets currentSeed to null and preserves customDeck when passed as array', () => {
+      const customDeck: Card[] = [
+        { id: 'c1', suit: 'hearts', rank: 1, isFaceUp: false },
+        { id: 'c2', suit: 'spades', rank: 13, isFaceUp: false },
+      ];
+      const game = new GameState();
+      game.initGame(1, customDeck);
+
+      expect(game.currentSeed).toBeNull();
+      expect(game.getSeed()).toBeNull();
+      expect(game.tableau[0][0].id).toBe('c2');
+    });
+
+    it('sets currentSeed to null and preserves customDeck when passed in options object', () => {
+      const customDeck: Card[] = [
+        { id: 'c1', suit: 'hearts', rank: 1, isFaceUp: false },
+        { id: 'c2', suit: 'spades', rank: 13, isFaceUp: false },
+      ];
+      const game = new GameState();
+      game.initGame(1, { customDeck });
+
+      expect(game.currentSeed).toBeNull();
+      expect(game.getSeed()).toBeNull();
+      expect(game.tableau[0][0].id).toBe('c2');
+    });
+
+    it('restores saved seed when calling restoreState', () => {
+      const game = new GameState();
+      game.restoreState({
+        drawMode: 1,
+        stock: [],
+        waste: [],
+        foundations: [[], [], [], []],
+        tableau: [[], [], [], [], [], [], []],
+        seed: 424242,
+      });
+
+      expect(game.getSeed()).toBe(424242);
+      expect(game.currentSeed).toBe(424242);
+    });
+  });
 });

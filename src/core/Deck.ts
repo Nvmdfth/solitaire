@@ -22,10 +22,10 @@ export function createDeck(): Card[] {
 /**
  * Modern Fisher-Yates shuffle algorithm
  */
-export function shuffleDeck(deck: Card[]): Card[] {
+export function shuffleDeck(deck: Card[], rng: () => number = Math.random): Card[] {
   const cards = [...deck];
   for (let i = cards.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
+    const j = Math.floor(rng() * (i + 1));
     [cards[i], cards[j]] = [cards[j], cards[i]];
   }
   return cards;
