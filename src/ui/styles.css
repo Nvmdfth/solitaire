@@ -98,38 +98,51 @@ body, html {
   gap: 8px;
 }
 
-.hud-pill-btn {
+.hud-pill-btn,
+#hud-draw-mode {
   background: rgba(255, 255, 255, 0.12);
   color: #ffffff;
   border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 20px;
-  padding: 6px 12px;
+  padding: 6px 14px;
   font-size: 12px;
   font-weight: 700;
   cursor: pointer;
   transition: all 0.15s ease;
+  min-width: 44px;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
 }
 
-.hud-pill-btn:active {
+.hud-pill-btn:active,
+#hud-draw-mode:active {
   background: rgba(255, 255, 255, 0.25);
   transform: scale(0.96);
 }
 
-.hud-icon-btn {
+.hud-icon-btn,
+#hud-sound-toggle {
   background: rgba(255, 255, 255, 0.12);
   border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 50%;
-  width: 34px;
-  height: 34px;
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  min-height: 44px;
   font-size: 16px;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
   transition: all 0.15s ease;
+  box-sizing: border-box;
 }
 
-.hud-icon-btn:active {
+.hud-icon-btn:active,
+#hud-sound-toggle:active {
   background: rgba(255, 255, 255, 0.25);
   transform: scale(0.94);
 }
@@ -168,6 +181,7 @@ body, html {
   color: var(--text-light);
   cursor: pointer;
   transition: all 0.15s ease;
+  min-width: 44px;
   min-height: 48px;
 }
 

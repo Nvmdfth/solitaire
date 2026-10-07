@@ -1,6 +1,7 @@
 export class WinCelebration {
   private container: HTMLElement;
   private modalEl: HTMLElement | null = null;
+  private onPlayAgain?: () => void;
 
   constructor(container: HTMLElement) {
     this.container = container;
@@ -10,9 +11,10 @@ export class WinCelebration {
     score: number,
     moves: number,
     timeSeconds: number,
-    onPlayAgain: () => void
+    onPlayAgain?: () => void
   ): void {
     this.hide();
+    this.onPlayAgain = onPlayAgain;
 
     const minutes = Math.floor(timeSeconds / 60);
     const seconds = timeSeconds % 60;
@@ -51,7 +53,7 @@ export class WinCelebration {
     if (btn) {
       btn.addEventListener('click', () => {
         this.hide();
-        onPlayAgain();
+        this.onPlayAgain?.();
       });
     }
   }

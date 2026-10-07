@@ -8,7 +8,8 @@
     "build": "tsc && vite build",
     "preview": "vite preview --port 9876",
     "test": "vitest",
-    "test:run": "vitest run"
+    "test:run": "vitest run",
+    "test:e2e": "node scripts/test_ui_e2e.js"
   },
   "dependencies": {
     "three": "^0.162.0"
