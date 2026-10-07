@@ -1,9 +1,13 @@
 #!/usr/bin/env tsx
 import * as fs from 'fs';
 import * as path from 'path';
+import { fileURLToPath } from 'url';
 import { KlondikeSolver } from '../src/core/solver/KlondikeSolver';
 import { SolverResult } from '../src/core/solver/SolverTypes';
 import { KNOWN_WINNABLE_SEEDS, KNOWN_UNWINNABLE_SEEDS } from '../src/core/data/seedFixtures';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 interface SeedEvaluation {
   seed: number;
@@ -33,15 +37,19 @@ function parseArgs(): CliOptions {
 
   for (let i = 0; i < args.length; i++) {
     if (args[i] === '--start' && i + 1 < args.length) {
-      start = parseInt(args[++i], 10) || 1;
+      const parsed = parseInt(args[++i], 10);
+      if (!isNaN(parsed) && parsed >= 0) start = parsed;
     } else if (args[i] === '--count' && i + 1 < args.length) {
-      count = parseInt(args[++i], 10) || 50;
+      const parsed = parseInt(args[++i], 10);
+      if (!isNaN(parsed) && parsed > 0) count = parsed;
     } else if (args[i] === '--output' && i + 1 < args.length) {
       output = args[++i];
     } else if (args[i] === '--max-states' && i + 1 < args.length) {
-      maxStates = parseInt(args[++i], 10) || 5000;
+      const parsed = parseInt(args[++i], 10);
+      if (!isNaN(parsed) && parsed > 0) maxStates = parsed;
     } else if (args[i] === '--timeout' && i + 1 < args.length) {
-      timeoutMs = parseInt(args[++i], 10) || 2000;
+      const parsed = parseInt(args[++i], 10);
+      if (!isNaN(parsed) && parsed > 0) timeoutMs = parsed;
     } else if (args[i] === '--update-fixtures') {
       updateFixtures = true;
     }
@@ -120,7 +128,7 @@ async function run(): Promise<void> {
   }
 
   if (updateFixtures) {
-    const fixturesPath = path.resolve(process.cwd(), 'src/core/data/seedFixtures.ts');
+    const fixturesPath = path.resolve(__dirname, '../src/core/data/seedFixtures.ts');
     const existingWinnable = new Set<number>(KNOWN_WINNABLE_SEEDS);
     const existingUnwinnable = new Set<number>(KNOWN_UNWINNABLE_SEEDS);
 
@@ -129,11 +137,13 @@ async function run(): Promise<void> {
 
     for (const res of results) {
       if (res.status === 'WINNABLE') {
+        existingUnwinnable.delete(res.seed);
         if (!existingWinnable.has(res.seed)) {
           existingWinnable.add(res.seed);
           newlyAddedWinnable++;
         }
       } else if (res.status === 'UNWINNABLE') {
+        existingWinnable.delete(res.seed);
         if (!existingUnwinnable.has(res.seed)) {
           existingUnwinnable.add(res.seed);
           newlyAddedUnwinnable++;
