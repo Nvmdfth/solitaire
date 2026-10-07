@@ -1,8 +1,6 @@
 import { GameState } from '../GameState';
 import { Rank, Suit } from '../types';
 import { getCardColor } from '../Card';
-import { createDeck } from '../Deck';
-import { createPRNG, hashSeed } from '../PRNG';
 import {
   ISolver,
   SolverMove,
@@ -321,13 +319,7 @@ export class KlondikeSolver implements ISolver {
     let gameState: GameState;
     if (typeof gameStateOrSeed === 'number') {
       gameState = new GameState();
-      const rng = createPRNG(hashSeed(gameStateOrSeed));
-      const deck = createDeck();
-      for (let i = deck.length - 1; i > 0; i--) {
-        const j = Math.floor(rng() * (i + 1));
-        [deck[i], deck[j]] = [deck[j], deck[i]];
-      }
-      gameState.initGame(1, deck);
+      gameState.initGame(1, { seed: gameStateOrSeed >>> 0 });
     } else {
       gameState = gameStateOrSeed;
     }
@@ -383,7 +375,7 @@ export class KlondikeSolver implements ISolver {
         };
       }
 
-      if ((visitedStates & 63) === 0 && performance.now() - startTime >= timeoutMs) {
+      if ((visitedStates & 7) === 0 && performance.now() - startTime >= timeoutMs) {
         return {
           status: 'TIMEOUT',
           movesCount: 0,

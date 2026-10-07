@@ -177,5 +177,44 @@ describe('GameGenerator', () => {
       generator.setSolver(dummySolver);
       expect(generator.getSolver()).toBe(dummySolver);
     });
+
+    it('validates uint32 integer in addToCatalog and addToBlacklist', () => {
+      const generator = new GameGenerator();
+      expect(() => generator.addToCatalog(-1)).toThrow(/unsigned 32-bit integer/);
+      expect(() => generator.addToCatalog(1.5)).toThrow(/unsigned 32-bit integer/);
+      expect(() => generator.addToCatalog(0x100000000)).toThrow(/unsigned 32-bit integer/);
+
+      expect(() => generator.addToBlacklist(-5)).toThrow(/unsigned 32-bit integer/);
+      expect(() => generator.addToBlacklist(3.14)).toThrow(/unsigned 32-bit integer/);
+      expect(() => generator.addToBlacklist(0x100000000)).toThrow(/unsigned 32-bit integer/);
+    });
+
+    it('supports injected rng in constructor and getWinnableSeed', () => {
+      let callCount = 0;
+      const customRng = () => {
+        callCount++;
+        return 0.5;
+      };
+      const generator = new GameGenerator(undefined, [10, 20, 30], [], customRng);
+      const seed = generator.getWinnableSeed();
+      expect(callCount).toBeGreaterThan(0);
+      expect([10, 20, 30]).toContain(seed);
+
+      let methodRngCalls = 0;
+      const methodRng = () => {
+        methodRngCalls++;
+        return 0.1;
+      };
+      const seed2 = generator.getWinnableSeed(false, false, methodRng);
+      expect(methodRngCalls).toBeGreaterThan(0);
+      expect([10, 20, 30]).toContain(seed2);
+    });
+
+    it('guarantees safe fallback seed is not blacklisted even if all fixtures are blacklisted', () => {
+      const generator = new GameGenerator(undefined, [], [...KNOWN_WINNABLE_SEEDS, 1, 2, 3]);
+      const seed = generator.getWinnableSeed(false);
+      expect(generator.isBlacklisted(seed)).toBe(false);
+      expect(seed).toBeGreaterThan(3);
+    });
   });
 });

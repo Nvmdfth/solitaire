@@ -1,4 +1,3 @@
-import { randomSeed } from './PRNG';
 import { KNOWN_WINNABLE_SEEDS, KNOWN_UNWINNABLE_SEEDS } from './data/seedFixtures';
 import { ISolver } from './solver/SolverTypes';
 import { KlondikeSolver } from './solver/KlondikeSolver';
@@ -7,17 +6,20 @@ export class GameGenerator {
   public winnableCatalog: number[];
   public unwinnableBlacklist: Set<number>;
   private solver?: ISolver;
+  private rng: () => number;
 
   constructor(
     solver?: ISolver,
     initialCatalog?: number[],
-    initialBlacklist?: number[] | Set<number>
+    initialBlacklist?: number[] | Set<number>,
+    rng?: () => number
   ) {
     this.solver = solver ?? new KlondikeSolver();
     this.winnableCatalog = initialCatalog ? [...initialCatalog] : [...KNOWN_WINNABLE_SEEDS];
     this.unwinnableBlacklist = initialBlacklist
       ? new Set(initialBlacklist)
       : new Set(KNOWN_UNWINNABLE_SEEDS);
+    this.rng = rng ?? (() => Math.random());
   }
 
   /**
@@ -45,6 +47,9 @@ export class GameGenerator {
    * Adds a seed to the unwinnable blacklist and removes it from the winnable catalog.
    */
   public addToBlacklist(seed: number): void {
+    if (!Number.isInteger(seed) || seed < 0 || seed > 0xFFFFFFFF) {
+      throw new Error(`Invalid seed: ${seed} must be an unsigned 32-bit integer`);
+    }
     this.unwinnableBlacklist.add(seed);
     this.winnableCatalog = this.winnableCatalog.filter(s => s !== seed);
   }
@@ -53,6 +58,9 @@ export class GameGenerator {
    * Adds a verified winnable seed to the catalog.
    */
   public addToCatalog(seed: number): void {
+    if (!Number.isInteger(seed) || seed < 0 || seed > 0xFFFFFFFF) {
+      throw new Error(`Invalid seed: ${seed} must be an unsigned 32-bit integer`);
+    }
     if (!this.winnableCatalog.includes(seed)) {
       this.winnableCatalog.push(seed);
     }
@@ -66,11 +74,17 @@ export class GameGenerator {
    *    - If fallbackToSolver is true and solver is provided, runs solver up to 5 attempts.
    *    - Otherwise, generates a random candidate seed not in unwinnableBlacklist.
    */
-  public getWinnableSeed(fallbackToSolver: boolean = true, bypassCatalog: boolean = false): number {
+  public getWinnableSeed(
+    fallbackToSolver: boolean = true,
+    bypassCatalog: boolean = false,
+    rng?: () => number
+  ): number {
+    const effectiveRng = rng ?? this.rng;
+
     if (!bypassCatalog) {
       const available = this.winnableCatalog.filter(s => !this.isBlacklisted(s));
       if (available.length > 0) {
-        const index = Math.floor(Math.random() * available.length);
+        const index = Math.floor(effectiveRng() * available.length);
         return available[index];
       }
     }
@@ -78,17 +92,15 @@ export class GameGenerator {
     // Catalog empty, exhausted, or bypassed
     if (fallbackToSolver && this.solver) {
       const MAX_SOLVER_ATTEMPTS = 5;
-      let lastCandidate: number | null = null;
 
       for (let attempt = 0; attempt < MAX_SOLVER_ATTEMPTS; attempt++) {
-        let candidate = randomSeed();
+        let candidate = Math.floor(effectiveRng() * 0xFFFFFFFF) + 1;
         let retries = 0;
         while (this.isBlacklisted(candidate) && retries < 100) {
-          candidate = randomSeed();
+          candidate = Math.floor(effectiveRng() * 0xFFFFFFFF) + 1;
           retries++;
         }
 
-        lastCandidate = candidate;
         if (this.isBlacklisted(candidate)) {
           continue;
         }
@@ -108,15 +120,14 @@ export class GameGenerator {
       }
 
       // Exhausted attempts: return verified safe seed
-      const safeSeed = KNOWN_WINNABLE_SEEDS.find(s => !this.isBlacklisted(s)) ?? 100;
-      return safeSeed;
+      return this.getSafeFallbackSeed();
     }
 
     // Solver not available or fallback disabled: generate candidate not in blacklist
-    let candidate = randomSeed();
+    let candidate = Math.floor(effectiveRng() * 0xFFFFFFFF) + 1;
     let retries = 0;
     while (this.isBlacklisted(candidate) && retries < 1000) {
-      candidate = randomSeed();
+      candidate = Math.floor(effectiveRng() * 0xFFFFFFFF) + 1;
       retries++;
     }
 
@@ -124,6 +135,22 @@ export class GameGenerator {
       return candidate;
     }
 
-    return KNOWN_WINNABLE_SEEDS.find(s => !this.isBlacklisted(s)) ?? 100;
+    return this.getSafeFallbackSeed();
+  }
+
+  private getSafeFallbackSeed(): number {
+    const fromCatalog = this.winnableCatalog.find(s => !this.isBlacklisted(s));
+    if (fromCatalog !== undefined) {
+      return fromCatalog;
+    }
+    const fixture = KNOWN_WINNABLE_SEEDS.find(s => !this.isBlacklisted(s));
+    if (fixture !== undefined) {
+      return fixture;
+    }
+    let s = 1;
+    while (this.isBlacklisted(s)) {
+      s++;
+    }
+    return s;
   }
 }
