@@ -362,3 +362,154 @@ body, html {
   transform: scale(0.97);
   box-shadow: 0 2px 10px rgba(245, 158, 11, 0.2);
 }
+
+/* Seed Badge in Header */
+#hud-seed-btn {
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+#hud-seed-val {
+  font-family: monospace;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--gold-accent);
+}
+
+/* Modal Overlay & Seed Dialog */
+.hud-modal-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  pointer-events: auto;
+  animation: fadeIn 0.25s ease;
+}
+
+.hud-modal {
+  background: linear-gradient(145deg, #11381f, #092012);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 24px;
+  padding: 24px;
+  width: 90%;
+  max-width: 380px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6);
+  animation: scaleUp 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  color: #ffffff;
+}
+
+.hud-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.hud-modal-title {
+  font-size: 18px;
+  font-weight: 800;
+  margin: 0;
+  letter-spacing: 0.5px;
+}
+
+.hud-modal-close-btn {
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  color: #ffffff;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  font-size: 16px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+
+.hud-modal-close-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.hud-modal-body {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.hud-modal-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(0, 0, 0, 0.3);
+  padding: 10px 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.hud-modal-label {
+  font-size: 13px;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.hud-modal-badge {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--gold-accent);
+  font-family: monospace;
+}
+
+.hud-modal-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.hud-input {
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 12px;
+  padding: 12px 14px;
+  font-size: 14px;
+  color: #ffffff;
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+
+.hud-input:focus {
+  border-color: var(--gold-accent);
+  box-shadow: 0 0 8px rgba(245, 158, 11, 0.3);
+}
+
+.hud-modal-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.hud-modal-actions .hud-action-btn {
+  width: 100%;
+  height: 44px;
+  min-height: 44px;
+  border-radius: 14px;
+  font-size: 14px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+

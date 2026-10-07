@@ -11,6 +11,14 @@ import { InteractionManager } from './input/InteractionManager';
 import { SoundEffects } from './audio/SoundEffects';
 import { HUD } from './ui/HUD';
 import { WinCelebration } from './ui/WinCelebration';
+import { GameGenerator } from './core/GameGenerator';
+import { hashSeed } from './core/PRNG';
+import {
+  SavedSession,
+  saveSessionToCookie,
+  loadSessionFromCookie,
+  clearSessionCookie
+} from './core/SessionStorage';
 
 class SolitaireApp {
   private game: GameState;
@@ -22,6 +30,7 @@ class SolitaireApp {
   public interactionManager: InteractionManager;
   private hud: HUD;
   private winCelebration: WinCelebration;
+  private gameGenerator: GameGenerator;
 
   private cardMap: Map<string, Card3D> = new Map();
   private isAutoCompleting: boolean = false;
@@ -45,6 +54,7 @@ class SolitaireApp {
     this.soundEffects = new SoundEffects();
     this.sceneManager = new SceneManager(canvasContainer);
     this.animationManager = new AnimationManager();
+    this.gameGenerator = new GameGenerator();
 
     this.hud = new HUD(hudContainer, this.soundEffects, {
       onUndo: this.handleUndo.bind(this),
@@ -52,7 +62,9 @@ class SolitaireApp {
       onRestart: this.handleRestart.bind(this),
       onNewGame: this.handleNewGame.bind(this),
       onAutoComplete: this.handleStartAutoComplete.bind(this),
-      onToggleDrawMode: this.handleToggleDrawMode.bind(this)
+      onToggleDrawMode: this.handleToggleDrawMode.bind(this),
+      onSelectSeed: this.handleSelectSeed.bind(this),
+      onNewWinnableGame: this.handleNewWinnableGame.bind(this)
     });
 
     this.winCelebration = new WinCelebration(hudContainer);
@@ -72,8 +84,114 @@ class SolitaireApp {
       }
     );
 
-    this.startNewGame();
+    window.addEventListener('beforeunload', () => {
+      this.saveCurrentSession();
+    });
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const seedParam = urlParams.get('seed');
+    const savedSession = loadSessionFromCookie();
+
+    if (savedSession && !this.isSessionWon(savedSession)) {
+      const savedSeedStr = savedSession.game.seed != null ? String(savedSession.game.seed) : null;
+      if (!seedParam || (savedSeedStr !== null && String(hashSeed(seedParam.trim())) === savedSeedStr)) {
+        this.restoreSavedGame(savedSession);
+        if (savedSession.game.seed != null) {
+          this.updateUrlSeed(savedSession.game.seed);
+        }
+      } else {
+        this.startNewGame({ seed: seedParam.trim() });
+      }
+    } else if (seedParam !== null && seedParam.trim() !== '') {
+      this.startNewGame({ seed: seedParam.trim() });
+    } else {
+      this.startNewGame();
+      if (this.game.currentSeed !== null && this.game.currentSeed !== undefined) {
+        this.updateUrlSeed(this.game.currentSeed);
+      }
+    }
     this.startRenderLoop();
+  }
+
+  private isSessionWon(session: SavedSession): boolean {
+    return session.game.foundations.every(f => f.length === 13);
+  }
+
+  private restoreSavedGame(session: SavedSession): void {
+    this.winCelebration.hide();
+    this.animationManager.stopWinCascade();
+    this.isAutoCompleting = false;
+    this.commandManager.clear();
+
+    // Clear existing 3D card meshes from scene
+    this.cardMap.forEach((c3d) => {
+      if (c3d.mesh) {
+        this.sceneManager.scene.remove(c3d.mesh);
+      }
+    });
+    this.cardMap.clear();
+
+    // Restore state
+    this.game.restoreState(session.game);
+    this.initialDeck = session.initialDeck.map(c => ({ ...c }));
+    this.scoreManager.restoreStats(
+      session.stats.score,
+      session.stats.moves,
+      session.stats.elapsedSeconds
+    );
+    this.hud.setDrawMode(session.game.drawMode);
+    if (this.game.currentSeed !== null && this.game.currentSeed !== undefined) {
+      this.hud.updateSeed(this.game.currentSeed);
+    } else {
+      this.hud.updateSeed('---');
+    }
+
+    // Spawn 52 3D Card Meshes
+    const allCards: Card[] = [
+      ...this.game.stock,
+      ...this.game.waste,
+      ...this.game.foundations.flat(),
+      ...this.game.tableau.flat()
+    ];
+
+    allCards.forEach((card) => {
+      const card3D = CardMeshFactory.createCardMesh(card);
+      this.cardMap.set(card.id, card3D);
+      if (card3D.mesh) {
+        this.sceneManager.scene.add(card3D.mesh);
+      }
+    });
+
+    // Position cards directly in their pile slots without initial deal animation
+    this.syncAllPiles();
+  }
+
+  private saveCurrentSession(): void {
+    if (this.game.isGameWon()) {
+      clearSessionCookie();
+      return;
+    }
+
+    const session: SavedSession = {
+      version: 1,
+      timestamp: Date.now(),
+      game: {
+        stock: this.game.stock.map(c => ({ ...c })),
+        waste: this.game.waste.map(c => ({ ...c })),
+        foundations: this.game.foundations.map(f => f.map(c => ({ ...c }))),
+        tableau: this.game.tableau.map(col => col.map(c => ({ ...c }))),
+        drawMode: this.game.drawMode,
+        seed: this.game.currentSeed
+      },
+      initialDeck: this.initialDeck.map(c => ({ ...c })),
+      stats: {
+        score: this.scoreManager.getScore(),
+        moves: this.scoreManager.getMoves(),
+        elapsedSeconds: this.scoreManager.getElapsedTime()
+      }
+    };
+
+    saveSessionToCookie(session);
   }
 
   private startRenderLoop(): void {
@@ -102,7 +220,7 @@ class SolitaireApp {
     this.sceneManager.render();
   }
 
-  private startNewGame(customDeck?: Card[]): void {
+  private startNewGame(optionsOrDeck?: { seed?: number | string; customDeck?: Card[] } | Card[]): void {
     this.winCelebration.hide();
     this.animationManager.stopWinCascade();
     this.isAutoCompleting = false;
@@ -118,10 +236,18 @@ class SolitaireApp {
     this.cardMap.clear();
 
     // Initialize state
-    this.game.initGame(this.game.drawMode, customDeck);
+    this.game.initGame(this.game.drawMode, optionsOrDeck);
+
+    // Update HUD with active seed
+    if (this.game.currentSeed !== null && this.game.currentSeed !== undefined) {
+      this.hud.updateSeed(this.game.currentSeed);
+    } else {
+      this.hud.updateSeed('---');
+    }
 
     // Save initial deck for restart capability
-    if (!customDeck) {
+    const isCustomDeck = Array.isArray(optionsOrDeck) || (optionsOrDeck && 'customDeck' in optionsOrDeck);
+    if (!isCustomDeck) {
       this.saveInitialDeck();
     }
 
@@ -143,6 +269,7 @@ class SolitaireApp {
 
     // Start dealing animation from stock position to layout
     this.animateDealSequence();
+    this.saveCurrentSession();
   }
 
   private saveInitialDeck(): void {
@@ -207,6 +334,7 @@ class SolitaireApp {
         this.animationManager.animateMove(c3d, targetPos, 0.18, 0.4);
       }
     });
+    this.saveCurrentSession();
   }
 
   private handleCardFlipped(card: Card, isFaceUp: boolean): void {
@@ -215,6 +343,7 @@ class SolitaireApp {
       this.soundEffects.playFlip();
       this.animationManager.animateFlip(c3d, isFaceUp, 0.16);
     }
+    this.saveCurrentSession();
   }
 
   private handleStockDrawn(drawnCards: Card[]): void {
@@ -230,6 +359,7 @@ class SolitaireApp {
         this.animationManager.animateFlip(c3d, true, 0.14);
       }
     });
+    this.saveCurrentSession();
   }
 
   private handleWasteRecycled(): void {
@@ -244,9 +374,11 @@ class SolitaireApp {
         this.animationManager.animateFlip(c3d, false, 0.12);
       }
     });
+    this.saveCurrentSession();
   }
 
   private handleGameWon(): void {
+    clearSessionCookie();
     this.soundEffects.playWinFanfare();
     const allFoundationCards: Card3D[] = [];
     this.game.foundations.forEach((f) => {
@@ -287,6 +419,7 @@ class SolitaireApp {
       this.soundEffects.playUndo();
       this.commandManager.undo();
       this.syncAllPiles();
+      this.saveCurrentSession();
     }
   }
 
@@ -305,16 +438,43 @@ class SolitaireApp {
         }, 300);
       }
     } else {
-      this.hud.showToast('No more useful moves found! Try drawing from stock.');
+      this.hud.showToast('No more available moves!');
     }
   }
 
   private handleRestart(): void {
-    this.startNewGame(this.initialDeck.map(c => ({ ...c })));
+    if (this.game.currentSeed !== null && this.game.currentSeed !== undefined) {
+      this.startNewGame({ seed: this.game.currentSeed });
+    } else {
+      this.startNewGame(this.initialDeck.map(c => ({ ...c })));
+    }
   }
 
   private handleNewGame(): void {
     this.startNewGame();
+    if (this.game.currentSeed !== null && this.game.currentSeed !== undefined) {
+      this.updateUrlSeed(this.game.currentSeed);
+    }
+  }
+
+  private handleSelectSeed(seed: number | string): void {
+    this.updateUrlSeed(seed);
+    this.startNewGame({ seed });
+  }
+
+  private handleNewWinnableGame(): void {
+    const seed = this.gameGenerator.getWinnableSeed();
+    this.handleSelectSeed(seed);
+  }
+
+  private updateUrlSeed(seed: number | string): void {
+    try {
+      const url = new URL(window.location.href);
+      url.searchParams.set('seed', String(seed));
+      window.history.replaceState({}, '', url.toString());
+    } catch {
+      // In test/non-browser environment
+    }
   }
 
   private handleToggleDrawMode(mode: 1 | 3): void {

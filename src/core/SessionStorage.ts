@@ -9,6 +9,7 @@ export interface SavedGameData {
   foundations: Card[][];
   tableau: Card[][];
   drawMode: 1 | 3;
+  seed?: number | null;
 }
 
 export interface SavedStatsData {
@@ -173,7 +174,8 @@ export function deleteCookie(name: string, cookieSetter?: (cookieStr: string) =>
  * Format: v1|drawMode:score:moves:elapsedSeconds|initialDeck|stock|waste|f0.f1.f2.f3|t0.t1.t2.t3.t4.t5.t6
  */
 export function serializeSession(session: SavedSession): string {
-  const stats = `${session.game.drawMode}:${session.stats.score}:${session.stats.moves}:${session.stats.elapsedSeconds}`;
+  const seedPart = session.game.seed !== undefined && session.game.seed !== null ? `:${session.game.seed}` : '';
+  const stats = `${session.game.drawMode}:${session.stats.score}:${session.stats.moves}:${session.stats.elapsedSeconds}${seedPart}`;
   const initialDeck = encodeCards(session.initialDeck);
   const stock = encodeCards(session.game.stock);
   const waste = encodeCards(session.game.waste);
@@ -202,6 +204,8 @@ export function deserializeSession(serialized: string): SavedSession | null {
       const score = Math.max(0, parseInt(statsPart[1], 10) || 0);
       const moves = Math.max(0, parseInt(statsPart[2], 10) || 0);
       const elapsedSeconds = Math.max(0, parseInt(statsPart[3], 10) || 0);
+      const seedVal = statsPart.length > 4 && statsPart[4] !== '' ? parseInt(statsPart[4], 10) : undefined;
+      const seed = Number.isFinite(seedVal) ? seedVal : null;
 
       const initialDeck = decodeCards(parts[2]);
       const stock = decodeCards(parts[3]);
@@ -234,7 +238,8 @@ export function deserializeSession(serialized: string): SavedSession | null {
           waste,
           foundations,
           tableau,
-          drawMode
+          drawMode,
+          seed
         },
         initialDeck: initialDeck.length === 52 ? initialDeck : [
           ...stock,
