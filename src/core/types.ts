@@ -22,3 +22,23 @@ export interface GameStats {
   timeElapsed: number; // in seconds
   drawMode: 1 | 3;
 }
+
+export type CardBackSymbol = 'spades' | 'hearts' | 'diamonds' | 'clubs';
+
+export interface CardBackSettings {
+  color: string;
+  symbol: CardBackSymbol;
+}
+
+export const DEFAULT_CARD_BACK_SETTINGS: CardBackSettings = {
+  color: '#0f2b5c',
+  symbol: 'spades'
+};
+
+export const CARD_BACK_SUIT_SYMBOLS: Record<CardBackSymbol, string> = {
+  spades: '♠',
+  hearts: '♥',
+  diamonds: '♦',
+  clubs: '♣'
+};
+

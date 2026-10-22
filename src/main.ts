@@ -17,8 +17,11 @@ import {
   SavedSession,
   saveSessionToCookie,
   loadSessionFromCookie,
-  clearSessionCookie
+  clearSessionCookie,
+  saveCardBackSettings,
+  loadCardBackSettings
 } from './core/SessionStorage';
+
 
 class SolitaireApp {
   private game: GameState;
@@ -57,6 +60,9 @@ class SolitaireApp {
     this.gameGenerator = new GameGenerator();
     this.fetchBackgroundSeeds();
 
+    const savedCardBack = loadCardBackSettings();
+    CardMeshFactory.setCardBackSettings(savedCardBack);
+
     this.hud = new HUD(hudContainer, this.soundEffects, {
       onUndo: this.handleUndo.bind(this),
       onHint: this.handleHint.bind(this),
@@ -65,8 +71,16 @@ class SolitaireApp {
       onAutoComplete: this.handleStartAutoComplete.bind(this),
       onToggleDrawMode: this.handleToggleDrawMode.bind(this),
       onSelectSeed: this.handleSelectSeed.bind(this),
-      onNewWinnableGame: this.handleNewWinnableGame.bind(this)
+      onNewWinnableGame: this.handleNewWinnableGame.bind(this),
+      onCardBackChanged: (settings, commit) => {
+        CardMeshFactory.setCardBackSettings(settings);
+        if (commit) {
+          saveCardBackSettings(settings);
+        }
+      }
     });
+    this.hud.setCardBackSettings(savedCardBack);
+
 
     this.winCelebration = new WinCelebration(hudContainer);
 

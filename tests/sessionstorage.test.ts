@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import {
   SavedSession,
   serializeSession,
@@ -13,9 +13,13 @@ import {
   saveSessionToCookie,
   loadSessionFromCookie,
   clearSessionCookie,
-  COOKIE_NAME
+  saveCardBackSettings,
+  loadCardBackSettings,
+  COOKIE_NAME,
+  CARD_BACK_STORAGE_KEY
 } from '../src/core/SessionStorage';
 import { GameState } from '../src/core/GameState';
+import { DEFAULT_CARD_BACK_SETTINGS } from '../src/core/types';
 
 describe('SessionStorage cookie serialization and persistence', () => {
   beforeEach(() => {
@@ -173,4 +177,67 @@ describe('SessionStorage cookie serialization and persistence', () => {
       (globalThis as any).location = originalLocation;
     }
   });
+
+  describe('Card back settings persistence', () => {
+    let mockStorageMap: Map<string, string>;
+    let mockStorage: { getItem: (k: string) => string | null; setItem: (k: string, v: string) => void; removeItem: (k: string) => void };
+    let originalLocalStorage: unknown;
+
+    beforeEach(() => {
+      originalLocalStorage = (globalThis as any).localStorage;
+      mockStorageMap = new Map();
+      mockStorage = {
+        getItem: (k: string) => mockStorageMap.get(k) ?? null,
+        setItem: (k: string, v: string) => { mockStorageMap.set(k, v); },
+        removeItem: (k: string) => { mockStorageMap.delete(k); }
+      };
+      (globalThis as any).localStorage = mockStorage;
+    });
+
+    afterEach(() => {
+      if (originalLocalStorage === undefined) {
+        delete (globalThis as any).localStorage;
+      } else {
+        (globalThis as any).localStorage = originalLocalStorage;
+      }
+    });
+
+    it('saves and loads valid card back settings', () => {
+      const custom = { color: '#7f1d1d', symbol: 'hearts' as const };
+      const saved = saveCardBackSettings(custom, mockStorage);
+      expect(saved).toBe(true);
+
+      const loaded = loadCardBackSettings(mockStorage);
+      expect(loaded).toEqual(custom);
+    });
+
+    it('falls back to defaults when no settings are saved', () => {
+      const loaded = loadCardBackSettings(mockStorage);
+      expect(loaded).toEqual(DEFAULT_CARD_BACK_SETTINGS);
+    });
+
+    it('sanitizes and validates corrupted or invalid values', () => {
+      mockStorage.setItem(CARD_BACK_STORAGE_KEY, JSON.stringify({
+        color: 'invalid-color-value',
+        symbol: 'invalid-suit-symbol'
+      }));
+
+      const loaded = loadCardBackSettings(mockStorage);
+      expect(loaded.color).toBe(DEFAULT_CARD_BACK_SETTINGS.color);
+      expect(loaded.symbol).toBe(DEFAULT_CARD_BACK_SETTINGS.symbol);
+    });
+
+    it('preserves valid custom hex color and suit symbol', () => {
+      mockStorage.setItem(CARD_BACK_STORAGE_KEY, JSON.stringify({
+        color: '#064e3b',
+        symbol: 'diamonds'
+      }));
+
+      const loaded = loadCardBackSettings(mockStorage);
+      expect(loaded.color).toBe('#064e3b');
+      expect(loaded.symbol).toBe('diamonds');
+    });
+  });
 });
+
+

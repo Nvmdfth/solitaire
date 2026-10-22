@@ -1,9 +1,11 @@
 :root {
-  --felt-green: #0d3b1e;
-  --gold-accent: #f59e0b;
-  --card-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
-  --glass-bg: rgba(10, 35, 20, 0.75);
-  --glass-border: rgba(255, 255, 255, 0.15);
+  --felt-green: #072914;
+  --gold-accent: #f5c451;
+  --gold-deep: #d97706;
+  --card-shadow: 0 10px 28px rgba(0, 0, 0, 0.45);
+  --glass-bg: linear-gradient(180deg, rgba(14, 48, 28, 0.86) 0%, rgba(7, 26, 15, 0.92) 100%);
+  --glass-border: rgba(245, 196, 81, 0.24);
+  --glass-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.16);
   --text-light: #f8fafc;
   --text-muted: #94a3b8;
 }
@@ -53,7 +55,7 @@ body, html {
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  padding: env(safe-area-inset-top, 12px) env(safe-area-inset-right, 12px) env(safe-area-inset-bottom, 12px) env(safe-area-inset-left, 12px);
+  padding: env(safe-area-inset-top, 10px) env(safe-area-inset-right, 10px) env(safe-area-inset-bottom, 10px) env(safe-area-inset-left, 10px);
 }
 
 /* Header Bar */
@@ -62,51 +64,76 @@ body, html {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 8px;
   background: var(--glass-bg);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
   border: 1px solid var(--glass-border);
-  border-radius: 16px;
-  padding: 8px 16px;
-  margin: 8px 12px 0 12px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+  border-radius: 20px;
+  padding: 6px 12px;
+  margin: 4px auto 0 auto;
+  width: calc(100% - 8px);
+  max-width: 820px;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.42), var(--glass-highlight);
+}
+
+.hud-stats-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(0, 0, 0, 0.28);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  padding: 5px 12px;
+  flex-shrink: 0;
+}
+
+.hud-stat-divider {
+  width: 1px;
+  height: 22px;
+  background: rgba(255, 255, 255, 0.12);
 }
 
 .hud-stat-box {
   display: flex;
   flex-direction: column;
   align-items: center;
+  min-width: 34px;
 }
 
 .hud-stat-title {
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.8px;
-  color: var(--text-muted);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.9px;
+  color: rgba(245, 196, 81, 0.85);
+  text-transform: uppercase;
 }
 
 .hud-stat-number {
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 800;
   font-variant-numeric: tabular-nums;
   color: #ffffff;
+  line-height: 1.15;
 }
 
 .hud-header-actions {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
+  flex-shrink: 0;
 }
 
 .hud-pill-btn,
 #hud-draw-mode {
-  background: rgba(255, 255, 255, 0.12);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.14) 0%, rgba(255, 255, 255, 0.06) 100%);
   color: #ffffff;
   border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 20px;
-  padding: 6px 14px;
-  font-size: 12px;
-  font-weight: 700;
+  border-radius: 22px;
+  padding: 6px 11px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.3px;
   cursor: pointer;
   transition: all 0.15s ease;
   min-width: 44px;
@@ -115,6 +142,13 @@ body, html {
   align-items: center;
   justify-content: center;
   box-sizing: border-box;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.15), 0 2px 6px rgba(0, 0, 0, 0.2);
+}
+
+.hud-pill-btn:hover,
+#hud-draw-mode:hover {
+  background: rgba(255, 255, 255, 0.18);
+  border-color: rgba(245, 196, 81, 0.45);
 }
 
 .hud-pill-btn:active,
@@ -125,26 +159,66 @@ body, html {
 
 .hud-icon-btn,
 #hud-sound-toggle {
-  background: rgba(255, 255, 255, 0.12);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.14) 0%, rgba(255, 255, 255, 0.06) 100%);
+  color: var(--gold-accent);
   border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 50%;
   width: 44px;
   height: 44px;
   min-width: 44px;
   min-height: 44px;
-  font-size: 16px;
+  font-size: 17px;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
   transition: all 0.15s ease;
   box-sizing: border-box;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.15), 0 2px 6px rgba(0, 0, 0, 0.2);
+}
+
+.hud-icon-btn:hover,
+#hud-sound-toggle:hover {
+  background: rgba(255, 255, 255, 0.18);
+  border-color: rgba(245, 196, 81, 0.45);
 }
 
 .hud-icon-btn:active,
 #hud-sound-toggle:active {
   background: rgba(255, 255, 255, 0.25);
   transform: scale(0.94);
+}
+
+@media (max-width: 430px) {
+  .hud-header {
+    padding: 5px 8px;
+    gap: 4px;
+  }
+  .hud-stats-group {
+    gap: 6px;
+    padding: 4px 8px;
+  }
+  .hud-stat-box {
+    min-width: 28px;
+  }
+  .hud-stat-title {
+    font-size: 8px;
+    letter-spacing: 0.5px;
+  }
+  .hud-stat-number {
+    font-size: 13px;
+  }
+  .hud-header-actions {
+    gap: 4px;
+  }
+  .hud-pill-btn,
+  #hud-draw-mode {
+    padding: 4px 8px;
+    font-size: 10px;
+  }
+  #hud-seed-btn {
+    max-width: 68px !important;
+  }
 }
 
 /* Bottom Bar */
@@ -155,16 +229,16 @@ body, html {
   justify-content: center;
   gap: 8px;
   background: var(--glass-bg);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
   border: 1px solid var(--glass-border);
   border-radius: 24px;
   padding: 8px 12px;
-  margin: 0 12px 8px 12px;
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.35);
-  max-width: 480px;
+  margin: 0 auto 4px auto;
+  box-shadow: 0 10px 32px rgba(0, 0, 0, 0.48), var(--glass-highlight);
+  max-width: 460px;
   align-self: center;
-  width: calc(100% - 24px);
+  width: calc(100% - 16px);
 }
 
 .hud-action-btn {
@@ -173,37 +247,53 @@ body, html {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 2px;
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  gap: 3px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0.05) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.14);
   border-radius: 16px;
   padding: 8px 4px;
   color: var(--text-light);
   cursor: pointer;
   transition: all 0.15s ease;
   min-width: 44px;
-  min-height: 48px;
+  min-height: 50px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 2px 6px rgba(0, 0, 0, 0.2);
 }
 
-.hud-action-btn:active {
-  background: rgba(255, 255, 255, 0.2);
+.hud-action-btn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.16);
+  border-color: rgba(245, 196, 81, 0.4);
+}
+
+.hud-action-btn:active:not(:disabled) {
+  background: rgba(255, 255, 255, 0.22);
   transform: scale(0.95);
 }
 
 .hud-action-btn .btn-icon {
   font-size: 18px;
   line-height: 1;
+  color: var(--gold-accent);
 }
 
 .hud-action-btn .btn-label {
   font-size: 11px;
-  font-weight: 600;
+  font-weight: 700;
+  letter-spacing: 0.3px;
 }
 
 .hud-action-btn.btn-primary {
-  background: #16a34a;
-  border-color: #22c55e;
-  box-shadow: 0 2px 10px rgba(34, 197, 94, 0.3);
+  background: linear-gradient(180deg, #22c55e 0%, #15803d 100%);
+  border-color: #4ade80;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35), 0 4px 14px rgba(22, 163, 74, 0.4);
+}
+
+.hud-action-btn.btn-primary .btn-icon {
+  color: #ffffff;
+}
+
+.hud-action-btn.btn-primary:hover {
+  background: linear-gradient(180deg, #4ade80 0%, #16a34a 100%);
 }
 
 .hud-action-btn.btn-primary:active {
@@ -211,10 +301,14 @@ body, html {
 }
 
 .hud-action-btn.highlight-gold {
-  background: #d97706;
-  border-color: #f59e0b;
-  box-shadow: 0 0 16px rgba(245, 158, 11, 0.6);
+  background: linear-gradient(180deg, #f59e0b 0%, #b45309 100%);
+  border-color: #fde68a;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4), 0 0 18px rgba(245, 158, 11, 0.6);
   animation: pulseGold 1.5s infinite;
+}
+
+.hud-action-btn.highlight-gold .btn-icon {
+  color: #ffffff;
 }
 
 @keyframes pulseGold {
@@ -228,15 +322,15 @@ body, html {
   top: 76px;
   left: 50%;
   transform: translateX(-50%);
-  background: rgba(15, 23, 42, 0.9);
-  backdrop-filter: blur(12px);
+  background: linear-gradient(180deg, rgba(15, 38, 24, 0.95), rgba(8, 22, 14, 0.98));
+  backdrop-filter: blur(16px);
   color: #ffffff;
-  padding: 10px 20px;
-  border-radius: 20px;
+  padding: 10px 22px;
+  border-radius: 22px;
   font-size: 13px;
-  font-weight: 600;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+  font-weight: 700;
+  border: 1px solid rgba(245, 196, 81, 0.4);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
   pointer-events: none;
   transition: opacity 0.3s ease;
   z-index: 50;
@@ -365,17 +459,25 @@ body, html {
 
 /* Seed Badge in Header */
 #hud-seed-btn {
-  max-width: 140px;
+  max-width: 110px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  gap: 2px;
+}
+
+.seed-hash {
+  color: var(--text-muted);
+  font-weight: 700;
 }
 
 #hud-seed-val {
-  font-family: monospace;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: 11px;
-  font-weight: 700;
+  font-weight: 800;
   color: var(--gold-accent);
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* Modal Overlay & Seed Dialog */
@@ -385,9 +487,9 @@ body, html {
   left: 0;
   width: 100%;
   height: 100%;
-  background: rgba(0, 0, 0, 0.65);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  background: rgba(2, 12, 6, 0.72);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -397,13 +499,13 @@ body, html {
 }
 
 .hud-modal {
-  background: linear-gradient(145deg, #11381f, #092012);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 24px;
+  background: linear-gradient(160deg, #103820 0%, #071f11 100%);
+  border: 1px solid rgba(245, 196, 81, 0.35);
+  border-radius: 26px;
   padding: 24px;
   width: 90%;
-  max-width: 380px;
-  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6);
+  max-width: 390px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.15);
   animation: scaleUp 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
   display: flex;
   flex-direction: column;
@@ -415,6 +517,8 @@ body, html {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  padding-bottom: 10px;
 }
 
 .hud-modal-title {
@@ -422,16 +526,17 @@ body, html {
   font-weight: 800;
   margin: 0;
   letter-spacing: 0.5px;
+  color: var(--gold-accent);
 }
 
 .hud-modal-close-btn {
   background: rgba(255, 255, 255, 0.1);
-  border: none;
+  border: 1px solid rgba(255, 255, 255, 0.15);
   color: #ffffff;
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  font-size: 16px;
+  font-size: 15px;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -441,6 +546,7 @@ body, html {
 
 .hud-modal-close-btn:hover {
   background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(245, 196, 81, 0.4);
 }
 
 .hud-modal-body {
@@ -453,7 +559,7 @@ body, html {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: rgba(0, 0, 0, 0.3);
+  background: rgba(0, 0, 0, 0.35);
   padding: 10px 14px;
   border-radius: 12px;
   border: 1px solid rgba(255, 255, 255, 0.08);
@@ -512,4 +618,179 @@ body, html {
   align-items: center;
   justify-content: center;
 }
+
+/* Card Back Customizer Modal */
+.hud-cardback-modal {
+  max-width: 440px;
+}
+
+.hud-cardback-body {
+  display: flex;
+  flex-direction: row;
+  gap: 18px;
+  align-items: center;
+}
+
+@media (max-width: 440px) {
+  .hud-cardback-body {
+    flex-direction: column;
+  }
+}
+
+.cardback-preview-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.cardback-preview-canvas {
+  width: 120px;
+  height: 173px;
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: #ffffff;
+}
+
+.cardback-controls-section {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  flex-grow: 1;
+  width: 100%;
+}
+
+.cardback-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.cardback-symbol-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+}
+
+.cardback-symbol-btn {
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 10px;
+  color: #ffffff;
+  font-size: 20px;
+  height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.cardback-symbol-btn[data-symbol="hearts"],
+.cardback-symbol-btn[data-symbol="diamonds"] {
+  color: #ef4444;
+}
+
+.cardback-symbol-btn:hover {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
+.cardback-symbol-btn.active {
+  background: rgba(245, 158, 11, 0.25);
+  border-color: var(--gold-accent);
+  box-shadow: 0 0 10px rgba(245, 158, 11, 0.4);
+}
+
+.cardback-color-swatches {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+}
+
+.cardback-swatch {
+  height: 28px;
+  border-radius: 8px;
+  border: 2px solid rgba(255, 255, 255, 0.25);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.cardback-swatch:hover {
+  transform: scale(1.08);
+  border-color: #ffffff;
+}
+
+.cardback-swatch.active {
+  border-color: var(--gold-accent);
+  transform: scale(1.08);
+  box-shadow: 0 0 10px rgba(245, 158, 11, 0.5);
+}
+
+.cardback-custom-color-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 4px;
+}
+
+.cardback-color-label {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.cardback-color-picker-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.cardback-color-input {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  width: 28px;
+  height: 28px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  border-radius: 6px;
+  overflow: hidden;
+  padding: 0;
+}
+
+.cardback-color-input::-webkit-color-swatch-wrapper {
+  padding: 0;
+}
+
+.cardback-color-input::-webkit-color-swatch {
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  border-radius: 6px;
+}
+
+.cardback-color-hex {
+  font-family: monospace;
+  font-size: 12px;
+  color: var(--gold-accent);
+  text-transform: uppercase;
+}
+
+button:focus-visible,
+input:focus-visible {
+  outline: 2px solid var(--gold-accent);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+
 

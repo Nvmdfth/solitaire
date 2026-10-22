@@ -27,11 +27,11 @@ export class Tabletop {
   }
 
   private createFeltTable(): void {
-    const tableGeom = new THREE.PlaneGeometry(16, 22);
+    const tableGeom = new THREE.PlaneGeometry(18, 24);
     const tableMat = new THREE.MeshStandardMaterial({
-      color: 0x093016, // Rich emerald casino green felt
-      roughness: 0.9,
-      metalness: 0.02
+      color: 0x0a351a, // Rich emerald casino green felt
+      roughness: 0.88,
+      metalness: 0.03
     });
 
     const feltMesh = new THREE.Mesh(tableGeom, tableMat);
@@ -50,51 +50,72 @@ export class Tabletop {
     canvas.height = 370;
     const ctx = canvas.getContext('2d')!;
 
-    // Draw high-contrast rounded slot outline
     const rx = 10;
     const ry = 10;
     const rw = canvas.width - 20;
     const rh = canvas.height - 20;
     const radius = 24;
 
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.45)';
-    ctx.lineWidth = 6;
-    ctx.setLineDash([12, 10]);
+    const traceRoundRect = (x: number, y: number, width: number, height: number, r: number) => {
+      ctx.beginPath();
+      ctx.moveTo(x + r, y);
+      ctx.lineTo(x + width - r, y);
+      ctx.quadraticCurveTo(x + width, y, x + width, y + r);
+      ctx.lineTo(x + width, y + height - r);
+      ctx.quadraticCurveTo(x + width, y + height, x + width - r, y + height);
+      ctx.lineTo(x + r, y + height);
+      ctx.quadraticCurveTo(x, y + height, x, y + height - r);
+      ctx.lineTo(x, y + r);
+      ctx.quadraticCurveTo(x, y, x + r, y);
+      ctx.closePath();
+    };
 
-    ctx.beginPath();
-    ctx.moveTo(rx + radius, ry);
-    ctx.lineTo(rx + rw - radius, ry);
-    ctx.quadraticCurveTo(rx + rw, ry, rx + rw, ry + radius);
-    ctx.lineTo(rx + rw, ry + rh - radius);
-    ctx.quadraticCurveTo(rx + rw, ry + rh, rx + rw - radius, ry + rh);
-    ctx.lineTo(rx + radius, ry + rh);
-    ctx.quadraticCurveTo(rx, ry + rh, rx, ry + rh - radius);
-    ctx.lineTo(rx, ry + radius);
-    ctx.quadraticCurveTo(rx, ry, rx + radius, ry);
-    ctx.closePath();
+    // Deep recessed baize well
+    traceRoundRect(rx, ry, rw, rh, radius);
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.28)';
+    ctx.fill();
+
+    // Outer subtle gold-leaf rim
+    ctx.strokeStyle = 'rgba(245, 196, 81, 0.42)';
+    ctx.lineWidth = 4;
+    ctx.stroke();
+
+    // Inner delicate inset hairline
+    traceRoundRect(rx + 8, ry + 8, rw - 16, rh - 16, radius - 6);
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.12)';
+    ctx.lineWidth = 2;
+    ctx.setLineDash([8, 8]);
     ctx.stroke();
     ctx.setLineDash([]);
 
-    // Fill subtle inner tint for slot visibility
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
-    ctx.fill();
+    const isRedSuit = icon === '♥' || icon === '♦';
 
-    // Center icon
+    // Center watermark medallion & icon
     if (icon) {
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.45)';
-      ctx.font = 'bold 96px sans-serif';
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(canvas.width / 2, canvas.height / 2 - (subtitle ? 16 : 0), 54, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.04)';
+      ctx.fill();
+      ctx.strokeStyle = isRedSuit ? 'rgba(248, 113, 113, 0.22)' : 'rgba(245, 196, 81, 0.22)';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      ctx.fillStyle = isRedSuit ? 'rgba(248, 113, 113, 0.55)' : 'rgba(245, 196, 81, 0.48)';
+      ctx.font = 'bold 82px Georgia, serif';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      ctx.fillText(icon, canvas.width / 2, canvas.height / 2 - (subtitle ? 18 : 0));
+      ctx.fillText(icon, canvas.width / 2, canvas.height / 2 - (subtitle ? 14 : 0));
+      ctx.restore();
     }
 
     // Subtitle label
     if (subtitle) {
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
-      ctx.font = 'bold 24px "Arial Black", sans-serif';
+      ctx.fillStyle = 'rgba(226, 232, 240, 0.45)';
+      ctx.font = '700 19px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'bottom';
-      ctx.fillText(subtitle, canvas.width / 2, canvas.height - 24);
+      ctx.fillText(subtitle, canvas.width / 2, canvas.height - 22);
     }
 
     const tex = new THREE.CanvasTexture(canvas);

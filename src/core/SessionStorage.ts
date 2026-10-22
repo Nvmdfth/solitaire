@@ -1,7 +1,9 @@
-import { Card, Rank, Suit } from './types';
+import { Card, Rank, Suit, CardBackSettings, CardBackSymbol, DEFAULT_CARD_BACK_SETTINGS } from './types';
 
 export const COOKIE_NAME = 'solitaire_session';
+export const CARD_BACK_STORAGE_KEY = 'solitaire_card_back';
 export const SESSION_MAX_AGE_SECONDS = 30 * 24 * 60 * 60; // 30 days
+
 
 export interface SavedGameData {
   stock: Card[];
@@ -360,3 +362,50 @@ export function clearSessionCookie(cookieSetter?: (cookieStr: string) => void): 
     } catch {}
   }
 }
+
+export interface StorageLike {
+  getItem(key: string): string | null;
+  setItem(key: string, value: string): void;
+  removeItem(key: string): void;
+}
+
+/**
+ * Saves card back customization settings to localStorage
+ */
+export function saveCardBackSettings(
+  settings: CardBackSettings,
+  storage: StorageLike | undefined = typeof localStorage !== 'undefined' ? localStorage : undefined
+): boolean {
+  if (!storage) return false;
+  try {
+    storage.setItem(CARD_BACK_STORAGE_KEY, JSON.stringify(settings));
+    return true;
+  } catch (err) {
+    console.warn('Failed to save card back settings to localStorage:', err);
+    return false;
+  }
+}
+
+/**
+ * Loads card back customization settings from localStorage with fallback to default
+ */
+export function loadCardBackSettings(
+  storage: StorageLike | undefined = typeof localStorage !== 'undefined' ? localStorage : undefined
+): CardBackSettings {
+  if (!storage) return { ...DEFAULT_CARD_BACK_SETTINGS };
+  try {
+    const raw = storage.getItem(CARD_BACK_STORAGE_KEY);
+    if (!raw) return { ...DEFAULT_CARD_BACK_SETTINGS };
+    const parsed = JSON.parse(raw);
+    const validSymbols: CardBackSymbol[] = ['spades', 'hearts', 'diamonds', 'clubs'];
+    const symbol: CardBackSymbol = validSymbols.includes(parsed?.symbol) ? parsed.symbol : DEFAULT_CARD_BACK_SETTINGS.symbol;
+    const color: string = typeof parsed?.color === 'string' && /^#[0-9a-fA-F]{6}$/.test(parsed.color.trim())
+      ? parsed.color.trim()
+      : DEFAULT_CARD_BACK_SETTINGS.color;
+    return { color, symbol };
+  } catch {
+    return { ...DEFAULT_CARD_BACK_SETTINGS };
+  }
+}
+
+

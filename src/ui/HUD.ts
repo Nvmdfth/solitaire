@@ -1,4 +1,6 @@
 import { SoundEffects } from '../audio/SoundEffects';
+import { CardBackSettings, CardBackSymbol, DEFAULT_CARD_BACK_SETTINGS } from '../core/types';
+import { CardMeshFactory } from '../gfx/CardMeshFactory';
 
 export interface HUDCallbacks {
   onUndo: () => void;
@@ -9,6 +11,8 @@ export interface HUDCallbacks {
   onToggleDrawMode: (mode: 1 | 3) => void;
   onSelectSeed: (seed: number | string) => void;
   onNewWinnableGame: () => void;
+  /** commit=false for live previews (e.g. color picker drag); persist only on commit. */
+  onCardBackChanged?: (settings: CardBackSettings, commit: boolean) => void;
 }
 
 export class HUD {
@@ -30,6 +34,15 @@ export class HUD {
   private seedInput!: HTMLInputElement;
   private seedModalCurrent!: HTMLElement;
 
+  private cardBackBtn!: HTMLButtonElement;
+  private cardBackModalOverlay!: HTMLElement;
+  private cardBackPreviewCanvas!: HTMLCanvasElement;
+  private cardBackCustomColorInput!: HTMLInputElement;
+  private cardBackColorHexEl!: HTMLElement;
+  private cardBackSymbolBtns: HTMLButtonElement[] = [];
+  private cardBackSwatches: HTMLButtonElement[] = [];
+  private currentCardBackSettings: CardBackSettings = { ...DEFAULT_CARD_BACK_SETTINGS };
+
   private currentDrawMode: 1 | 3 = 1;
   private currentSeed: number | string = '---';
 
@@ -42,6 +55,7 @@ export class HUD {
     this.render();
   }
 
+
   private render(): void {
     this.container.innerHTML = '';
 
@@ -49,29 +63,34 @@ export class HUD {
     this.headerEl = document.createElement('header');
     this.headerEl.className = 'hud-header';
     this.headerEl.innerHTML = `
-      <div class="hud-stat-box">
-        <span class="hud-stat-title">SCORE</span>
-        <span class="hud-stat-number" id="hud-score">0</span>
-      </div>
-
-      <div class="hud-stat-box">
-        <span class="hud-stat-title">MOVES</span>
-        <span class="hud-stat-number" id="hud-moves">0</span>
-      </div>
-
-      <div class="hud-stat-box">
-        <span class="hud-stat-title">TIME</span>
-        <span class="hud-stat-number" id="hud-timer">00:00</span>
+      <div class="hud-stats-group">
+        <div class="hud-stat-box">
+          <span class="hud-stat-title">SCORE</span>
+          <span class="hud-stat-number" id="hud-score">0</span>
+        </div>
+        <div class="hud-stat-divider"></div>
+        <div class="hud-stat-box">
+          <span class="hud-stat-title">MOVES</span>
+          <span class="hud-stat-number" id="hud-moves">0</span>
+        </div>
+        <div class="hud-stat-divider"></div>
+        <div class="hud-stat-box">
+          <span class="hud-stat-title">TIME</span>
+          <span class="hud-stat-number" id="hud-timer">00:00</span>
+        </div>
       </div>
 
       <div class="hud-header-actions">
         <button class="hud-pill-btn" id="hud-seed-btn" title="Game Seed (Click to share/change)">
-          #<span id="hud-seed-val">---</span>
+          <span class="seed-hash">#</span><span id="hud-seed-val">---</span>
         </button>
         <button class="hud-pill-btn" id="hud-draw-mode" title="Toggle Draw Mode">
           DRAW 1
         </button>
-        <button class="hud-icon-btn" id="hud-sound-toggle" title="Toggle Sound">
+        <button class="hud-icon-btn" id="hud-cardback-btn" title="Customize Card Back" aria-label="Customize Card Back">
+          ♠
+        </button>
+        <button class="hud-icon-btn" id="hud-sound-toggle" title="Toggle Sound" aria-label="Toggle Sound">
           ${this.soundEffects.getMuted() ? '🔇' : '🔊'}
         </button>
       </div>
@@ -136,6 +155,60 @@ export class HUD {
       </div>
     `;
 
+    // Card Back Customization Modal Dialog
+    this.cardBackModalOverlay = document.createElement('div');
+    this.cardBackModalOverlay.className = 'hud-modal-overlay hud-cardback-modal-overlay';
+    this.cardBackModalOverlay.id = 'hud-cardback-modal-overlay';
+    this.cardBackModalOverlay.style.display = 'none';
+    this.cardBackModalOverlay.innerHTML = `
+      <div class="hud-modal hud-cardback-modal" role="dialog" aria-modal="true" aria-labelledby="cardback-modal-title">
+        <div class="hud-modal-header">
+          <h3 id="cardback-modal-title" class="hud-modal-title">Customize Card Back</h3>
+          <button class="hud-modal-close-btn" id="cardback-modal-close" aria-label="Close">✕</button>
+        </div>
+        <div class="hud-modal-body hud-cardback-body">
+          <div class="cardback-preview-section">
+            <canvas id="cardback-preview-canvas" width="140" height="202" class="cardback-preview-canvas"></canvas>
+          </div>
+          <div class="cardback-controls-section">
+            <div class="cardback-group">
+              <label class="hud-modal-label">Center Symbol</label>
+              <div class="cardback-symbol-grid" role="group" aria-label="Center Symbol">
+                <button type="button" class="cardback-symbol-btn active" data-symbol="spades" title="Spades" aria-label="Spades" aria-pressed="true">♠</button>
+                <button type="button" class="cardback-symbol-btn" data-symbol="hearts" title="Hearts" aria-label="Hearts" aria-pressed="false">♥</button>
+                <button type="button" class="cardback-symbol-btn" data-symbol="diamonds" title="Diamonds" aria-label="Diamonds" aria-pressed="false">♦</button>
+                <button type="button" class="cardback-symbol-btn" data-symbol="clubs" title="Clubs" aria-label="Clubs" aria-pressed="false">♣</button>
+              </div>
+            </div>
+            <div class="cardback-group">
+              <label class="hud-modal-label">Card Back Color</label>
+              <div class="cardback-color-swatches" role="group" aria-label="Card Back Color">
+                <button type="button" class="cardback-swatch active" data-color="#0f2b5c" title="Navy" aria-label="Navy" aria-pressed="true" style="background-color: #0f2b5c;"></button>
+                <button type="button" class="cardback-swatch" data-color="#7f1d1d" title="Crimson" aria-label="Crimson" aria-pressed="false" style="background-color: #7f1d1d;"></button>
+                <button type="button" class="cardback-swatch" data-color="#064e3b" title="Emerald" aria-label="Emerald" aria-pressed="false" style="background-color: #064e3b;"></button>
+                <button type="button" class="cardback-swatch" data-color="#4c1d95" title="Purple" aria-label="Purple" aria-pressed="false" style="background-color: #4c1d95;"></button>
+                <button type="button" class="cardback-swatch" data-color="#1e293b" title="Slate" aria-label="Slate" aria-pressed="false" style="background-color: #1e293b;"></button>
+                <button type="button" class="cardback-swatch" data-color="#78350f" title="Amber" aria-label="Amber" aria-pressed="false" style="background-color: #78350f;"></button>
+                <button type="button" class="cardback-swatch" data-color="#134e4a" title="Teal" aria-label="Teal" aria-pressed="false" style="background-color: #134e4a;"></button>
+                <button type="button" class="cardback-swatch" data-color="#831843" title="Rose" aria-label="Rose" aria-pressed="false" style="background-color: #831843;"></button>
+              </div>
+              <div class="cardback-custom-color-row">
+                <label for="cardback-color-input" class="cardback-color-label">Custom Color:</label>
+                <div class="cardback-color-picker-wrapper">
+                  <input type="color" id="cardback-color-input" class="cardback-color-input" value="#0f2b5c" />
+                  <span id="cardback-color-hex" class="cardback-color-hex">#0f2b5c</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="hud-modal-actions">
+          <button class="hud-action-btn" id="cardback-reset-btn">Reset Default</button>
+          <button class="hud-action-btn btn-primary" id="cardback-done-btn">Done</button>
+        </div>
+      </div>
+    `;
+
     // Toast element for in-game notifications
     this.toastEl = document.createElement('div');
     this.toastEl.className = 'hud-toast';
@@ -144,6 +217,7 @@ export class HUD {
     this.container.appendChild(this.headerEl);
     this.container.appendChild(this.bottomBarEl);
     this.container.appendChild(this.seedModalOverlay);
+    this.container.appendChild(this.cardBackModalOverlay);
     this.container.appendChild(this.toastEl);
 
     // Cache elements
@@ -152,6 +226,7 @@ export class HUD {
     this.timerValEl = this.headerEl.querySelector('#hud-timer')!;
     this.drawModeBtn = this.headerEl.querySelector('#hud-draw-mode')!;
     this.muteBtn = this.headerEl.querySelector('#hud-sound-toggle')!;
+    this.cardBackBtn = this.headerEl.querySelector('#hud-cardback-btn')!;
     this.seedBtn = this.headerEl.querySelector('#hud-seed-btn')!;
     this.seedValEl = this.headerEl.querySelector('#hud-seed-val')!;
 
@@ -162,7 +237,14 @@ export class HUD {
     this.seedInput = this.seedModalOverlay.querySelector('#seed-input')!;
     this.seedModalCurrent = this.seedModalOverlay.querySelector('#seed-modal-current')!;
 
+    this.cardBackPreviewCanvas = this.cardBackModalOverlay.querySelector('#cardback-preview-canvas')!;
+    this.cardBackCustomColorInput = this.cardBackModalOverlay.querySelector('#cardback-color-input')!;
+    this.cardBackColorHexEl = this.cardBackModalOverlay.querySelector('#cardback-color-hex')!;
+    this.cardBackSymbolBtns = Array.from(this.cardBackModalOverlay.querySelectorAll('.cardback-symbol-btn'));
+    this.cardBackSwatches = Array.from(this.cardBackModalOverlay.querySelectorAll('.cardback-swatch'));
+
     this.initEvents();
+    this.updateCardBackUI();
   }
 
   private initEvents(): void {
@@ -175,6 +257,10 @@ export class HUD {
     this.muteBtn.addEventListener('click', () => {
       const isMuted = this.soundEffects.toggleMute();
       this.muteBtn.textContent = isMuted ? '🔇' : '🔊';
+    });
+
+    this.cardBackBtn.addEventListener('click', () => {
+      this.openCardBackModal();
     });
 
     this.undoBtn.addEventListener('click', () => {
@@ -199,6 +285,7 @@ export class HUD {
       this.callbacks.onNewGame();
     });
 
+    // Seed Modal Events
     this.seedBtn.addEventListener('click', () => {
       this.openSeedModal();
     });
@@ -240,11 +327,130 @@ export class HUD {
       this.closeSeedModal();
     });
 
-    window.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape' && this.seedModalOverlay.style.display !== 'none') {
-        this.closeSeedModal();
+    // Card Back Modal Events
+    const cardBackCloseBtn = this.cardBackModalOverlay.querySelector('#cardback-modal-close')!;
+    cardBackCloseBtn.addEventListener('click', () => {
+      this.closeCardBackModal();
+    });
+
+    const cardBackDoneBtn = this.cardBackModalOverlay.querySelector('#cardback-done-btn')!;
+    cardBackDoneBtn.addEventListener('click', () => {
+      this.closeCardBackModal();
+    });
+
+    this.cardBackModalOverlay.addEventListener('click', (e) => {
+      if (e.target === this.cardBackModalOverlay) {
+        this.closeCardBackModal();
       }
     });
+
+    // Suit symbol buttons
+    this.cardBackSymbolBtns.forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const symbol = btn.dataset.symbol as CardBackSymbol;
+        if (symbol) {
+          this.applyCardBackChange({
+            ...this.currentCardBackSettings,
+            symbol
+          });
+        }
+      });
+    });
+
+    // Color swatches
+    this.cardBackSwatches.forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const color = btn.dataset.color;
+        if (color) {
+          this.applyCardBackChange({
+            ...this.currentCardBackSettings,
+            color
+          });
+        }
+      });
+    });
+
+    // Color picker input: live preview while dragging, persist once on commit
+    this.cardBackCustomColorInput.addEventListener('input', (e) => {
+      const color = (e.target as HTMLInputElement).value;
+      if (color) {
+        this.applyCardBackChange({
+          ...this.currentCardBackSettings,
+          color
+        }, false);
+      }
+    });
+    this.cardBackCustomColorInput.addEventListener('change', () => {
+      this.callbacks.onCardBackChanged?.(this.getCardBackSettings(), true);
+    });
+
+    // Reset Default
+    const cardBackResetBtn = this.cardBackModalOverlay.querySelector('#cardback-reset-btn')!;
+    cardBackResetBtn.addEventListener('click', () => {
+      this.applyCardBackChange({ ...DEFAULT_CARD_BACK_SETTINGS });
+    });
+
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        if (this.seedModalOverlay.style.display !== 'none') {
+          this.closeSeedModal();
+        }
+        if (this.cardBackModalOverlay.style.display !== 'none') {
+          this.closeCardBackModal();
+        }
+      }
+    });
+  }
+
+  public setCardBackSettings(settings: CardBackSettings): void {
+    this.currentCardBackSettings = { ...settings };
+    this.updateCardBackUI();
+  }
+
+  public getCardBackSettings(): CardBackSettings {
+    return { ...this.currentCardBackSettings };
+  }
+
+  private applyCardBackChange(settings: CardBackSettings, commit = true): void {
+    this.currentCardBackSettings = { ...settings };
+    this.updateCardBackUI();
+    this.callbacks.onCardBackChanged?.(this.getCardBackSettings(), commit);
+  }
+
+  private updateCardBackUI(): void {
+    if (this.cardBackPreviewCanvas) {
+      CardMeshFactory.drawCardBackToCanvas(this.cardBackPreviewCanvas, this.currentCardBackSettings);
+    }
+
+    if (this.cardBackCustomColorInput) {
+      this.cardBackCustomColorInput.value = this.currentCardBackSettings.color;
+    }
+
+    if (this.cardBackColorHexEl) {
+      this.cardBackColorHexEl.textContent = this.currentCardBackSettings.color.toUpperCase();
+    }
+
+    this.cardBackSymbolBtns.forEach((btn) => {
+      const isActive = btn.dataset.symbol === this.currentCardBackSettings.symbol;
+      btn.classList.toggle('active', isActive);
+      btn.setAttribute('aria-pressed', String(isActive));
+    });
+
+    this.cardBackSwatches.forEach((btn) => {
+      const isActive = btn.dataset.color?.toLowerCase() === this.currentCardBackSettings.color.toLowerCase();
+      btn.classList.toggle('active', isActive);
+      btn.setAttribute('aria-pressed', String(isActive));
+    });
+  }
+
+  public openCardBackModal(): void {
+    this.closeSeedModal();
+    this.updateCardBackUI();
+    this.cardBackModalOverlay.style.display = 'flex';
+  }
+
+  public closeCardBackModal(): void {
+    this.cardBackModalOverlay.style.display = 'none';
   }
 
   public updateStats(score: number, moves: number, elapsedSeconds: number): void {

@@ -244,7 +244,7 @@ async function runE2ETests() {
     // ----------------------------------------------------
     console.log('\nSuite 3: Accessibility (a11y) & Tap Target Validation');
 
-    await page.setViewport({ width: 390, height: 844, isMobile: true, hasTouch: true });
+    await page.setViewport({ width: 390, height: 844, isMobile: true, hasTouch: true, deviceScaleFactor: 1 });
     await new Promise(r => setTimeout(r, 200));
 
     const a11yChecks = await page.evaluate(() => {
