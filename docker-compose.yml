@@ -5,3 +5,8 @@ services:
     ports:
       - "9876:9876"
     restart: unless-stopped
+    volumes:
+      - seed-data:/app/data
+
+volumes:
+  seed-data:

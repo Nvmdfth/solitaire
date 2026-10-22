@@ -55,6 +55,7 @@ class SolitaireApp {
     this.sceneManager = new SceneManager(canvasContainer);
     this.animationManager = new AnimationManager();
     this.gameGenerator = new GameGenerator();
+    this.fetchBackgroundSeeds();
 
     this.hud = new HUD(hudContainer, this.soundEffects, {
       onUndo: this.handleUndo.bind(this),
@@ -508,6 +509,18 @@ class SolitaireApp {
     }
     for (let col = 0; col < 7; col++) {
       this.syncPileVisuals({ type: 'tableau', index: col });
+    }
+  }
+
+  private async fetchBackgroundSeeds(): Promise<void> {
+    try {
+      const response = await fetch('/seeds.json', { cache: 'no-cache' });
+      if (response.ok) {
+        const data = await response.json();
+        this.gameGenerator.loadExternalSeeds(data);
+      }
+    } catch {
+      // Background seed file not present yet or offline, continue with built-in catalog
     }
   }
 }

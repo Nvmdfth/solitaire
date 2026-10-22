@@ -1,5 +1,6 @@
 node_modules
 dist
+dist-scanner
 .superpowers
 .DS_Store
 scripts/screenshot_*.png

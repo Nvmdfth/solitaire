@@ -68,6 +68,33 @@ export class GameGenerator {
   }
 
   /**
+   * Bulk loads external or background-scanned seed discoveries into catalog/blacklist.
+   */
+  public loadExternalSeeds(data?: { winnable?: number[]; unwinnable?: number[] } | null): void {
+    if (!data) return;
+    const catalogSet = new Set<number>(this.winnableCatalog);
+
+    if (Array.isArray(data.winnable)) {
+      for (const s of data.winnable) {
+        if (Number.isInteger(s) && s >= 0 && s <= 0xFFFFFFFF) {
+          catalogSet.add(s);
+          this.unwinnableBlacklist.delete(s);
+        }
+      }
+    }
+    if (Array.isArray(data.unwinnable)) {
+      for (const s of data.unwinnable) {
+        if (Number.isInteger(s) && s >= 0 && s <= 0xFFFFFFFF) {
+          this.unwinnableBlacklist.add(s);
+          catalogSet.delete(s);
+        }
+      }
+    }
+
+    this.winnableCatalog = Array.from(catalogSet);
+  }
+
+  /**
    * Retrieves a winnable seed.
    * 1. Picks a random seed from winnableCatalog if available.
    * 2. If catalog is empty or bypassed:

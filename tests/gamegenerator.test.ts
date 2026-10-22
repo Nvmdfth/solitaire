@@ -216,5 +216,31 @@ describe('GameGenerator', () => {
       expect(generator.isBlacklisted(seed)).toBe(false);
       expect(seed).toBeGreaterThan(3);
     });
+
+    it('loads and merges external seeds from background scanner JSON correctly', () => {
+      const generator = new GameGenerator(undefined, [1, 2], [99]);
+      generator.loadExternalSeeds({
+        winnable: [3, 4, 99],
+        unwinnable: [100, 1]
+      });
+
+      expect(generator.winnableCatalog).toContain(2);
+      expect(generator.winnableCatalog).toContain(3);
+      expect(generator.winnableCatalog).toContain(4);
+      expect(generator.winnableCatalog).toContain(99);
+      expect(generator.winnableCatalog).not.toContain(1);
+
+      expect(generator.isBlacklisted(99)).toBe(false);
+      expect(generator.isBlacklisted(100)).toBe(true);
+      expect(generator.isBlacklisted(1)).toBe(true);
+    });
+
+    it('handles null, undefined, or empty data in loadExternalSeeds without error', () => {
+      const generator = new GameGenerator(undefined, [1, 2], [99]);
+      expect(() => generator.loadExternalSeeds(null)).not.toThrow();
+      expect(() => generator.loadExternalSeeds(undefined)).not.toThrow();
+      expect(() => generator.loadExternalSeeds({})).not.toThrow();
+      expect(generator.winnableCatalog).toEqual([1, 2]);
+    });
   });
 });
